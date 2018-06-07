@@ -1,6 +1,30 @@
 """Parameters"""
 import numpy as np
-# Calibrated parameters for the reactant WR-EOS
+
+
+"""Initial conditions and simulation parameters"""
+# Simulation
+t0 = 0.0  # us (microseconds) # Simulation start time
+tf = 0.025  # us (microseconds) # Simulation finish time
+L = 0.3  # mm # Length of the tube
+
+# parameters
+phi_0 = 0.65
+phi_0 = 0.75
+u_0 = 0.0  # Initial velocity in the x-direction  # cm/s???
+u_0_1 = 0.0  # Pellet velocity in the x-direction  # cm/s???
+p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
+rho_0 = 1.6  # Initial density
+v_0 = (rho_0)**(-1)  # Assume experimental condition
+lambd_0 = 0  # Initial reaction progress
+             # Ratio of mass products / total mass of a volume element
+
+e_0_guess = 7.07  # kJ / cm3 Initial guess for starting internal energy
+e_0 = e_0_guess  # NOTE: This value is computed in ddt.py initialization
+                 #  e(p_0, v_0, lambd_0, phi_0) =  3.983295207817231
+
+
+"""Calibrated parameters for the reactant WR-EOS"""
 A = 2.0  # mm/us  # us = microsecond
 B = 2.50
 C = 0.70
@@ -25,6 +49,9 @@ p_c = 1.5899  # GPa
 p_ign = p_c  # GPa TODO: It is assumed that Table II of the paper implies this
 #p_ign = 0.1  # GPa TODO: This if from the paper Xu Stewart '97
 p_cj = 1  # GPa TODO: Find
+
+# Initialize the equation of state
+p_hat = rho_0 * A**2 / (4 * B)
 
 # Parameters correlated to an initial porosity
 def k_function(phi_0):  # Validated correct against paper values (Table IV)
@@ -51,3 +78,8 @@ def upsilon_function(phi_0):
     :return: mu
     """
     return 0.4  # constant fit
+
+# Parameters correlated to an initial porosity
+k = k_function(phi_0)
+mu = mu_function(phi_0)
+upsilon = upsilon_function(phi_0)

@@ -52,7 +52,8 @@ def r_lambda(p, lambd):
 
 
 
-
+## PDE equations
+# Solvers
 """Solver"""
 from clawpack import pyclaw
 from clawpack import riemann
@@ -66,7 +67,7 @@ solver.bc_lower[0] = pyclaw.BC.extrap  #.wall  # Wall in left
 solver.bc_upper[0] = pyclaw.BC.extrap  # non-wall (zero-order extrapolation) condition at the right boundary
 
 # Domain
-mx = 800;
+mx = 800
 x = pyclaw.Dimension(0.0, 0.1, mx, name='x')
 print(x)
 domain = pyclaw.Domain([x])
@@ -78,6 +79,7 @@ solution = pyclaw.Solution(solver.num_eqn, domain)
 state = solution.state
 xc = state.grid.p_centers[0]      # Array containing the cell center coordinates
 state.q[0, :] = rho_0
+state.q[1,:] = 0.                       # Velocity: zero
 print(state.q[0, :])
 #state.q[1,:] = 0.
 
