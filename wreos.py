@@ -1,8 +1,8 @@
 """The wide ranging equation of state (WR-EOS)"""
-from params import *
 #from ddt import *
 import numpy as np
 from scipy import optimize
+from params import *
 
 """WR-EOS"""
 def e(p, v, lambd, phi):
@@ -14,8 +14,14 @@ def e(p, v, lambd, phi):
     :param phi: Porosity
     :return:
     """
+    # First compute the volumes (Equation 16)
+    v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
-    """First compute the volumes (Equation 16)"""
+    # Using the computed volumes, compute the internal energy at v, p
+    return (1 - lambd) * e_r(p / phi, v_r) + lambd * e_p(p, v_p)
+
+
+def volumes(v, lambd, phi):
     def denom(lambd, Phi):
         """
         Denominator of closure relationships in equation 16
@@ -25,6 +31,7 @@ def e(p, v, lambd, phi):
         :return:
         """
         return lambd + (1 - lambd) * Phi
+
     v_ps_g = v  # Initial guess value for v_ps
     v_r_g = v * phi  # Initial guess value for v_r
     Phi_g = 0.95  # Initial guess value for Phi
@@ -48,11 +55,46 @@ def e(p, v, lambd, phi):
                          [v_ps / v_p ** 2, -1 / v_p, 0, 1]])
 
     sol = optimize.root(system, x0, jac=jac, method='hybr')
-    v_p, v_ps, v_r, Phi = sol.x
-    """Using the computed volumes, compute the internal energy at v, p"""
-    return (1 - lambd) * e_r(p / phi, v_r) + lambd * e_p(p, v_p)
+    return sol.x
 
 
+def p_from_e(energy, v, lambd, phi):
+    """
+    Compute the pressure, given energy, volume, lambd and phi
+    :param energy: energy
+    :param v: specific volume
+    :param lambd: reaction progress
+    :param phi: porosity
+    :param guess: Initial guess for p and v
+    :return: p, v  # pressure and volume
+    """
+    e = energy
+    v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
+
+    P = phi*(gamma_p(v_p)*lambd*p_s_p(v_p)*v_r
+             - gamma_r(v_r)*lambd*p_s_r(v_r)*v_p
+             + gamma_r(v_r)*p_s_r(v_r)*v_p
+             + e*v_p*v_r
+             - e_s_p(v_p)*lambd*v_p*v_r
+             + e_s_r(v_r)*lambd*v_p*v_r
+             - e_s_r(v_r)*v_p*v_r
+             )/(
+            gamma_p(v_p)*lambd*phi*v_r
+            - gamma_r(v_r)*lambd*v_p
+            + gamma_r(v_r)*v_p)
+
+    P = phi*(gamma_p(v_p)*gamma_r(v_r)*e - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd + gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)*lambd - gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r) - gamma_p(v_p)*lambd*p_s_r(v_r)*v_r + gamma_p(v_p)*p_s_r(v_r)*v_r + gamma_r(v_r)*lambd*p_s_p(v_p)*v_p)/(-gamma_p(v_p)*lambd*v_r + gamma_p(v_p)*v_r + gamma_r(v_r)*lambd*phi*v_p)
+    return P
+
+def e_i(p, v, lambd, phi):
+    """
+    Compute the initial energy, given p_0, v_0, lambd_0 and phi_0
+    :param p:
+    :param v:
+    :param lambd:
+    :param phi:
+    :return:
+    """
 
 
 """Detonation products"""
@@ -65,6 +107,7 @@ def e_p(p, v):
     :return: energy e_p
     """
     return e_s_p(v) + (v/gamma_p(v))*(p - p_s_p(v))
+
 
 def p_p(e, v):
     """
@@ -85,6 +128,7 @@ def p_s_p(v):
     return p_c * ((0.5*(v/v_c)**n + 0.5*(v/v_c)**(-n))**(a/n)
                   / ((v/v_c)**(k_wr + a))) * ((k_wr + 1 + F_wr(v))/
                                              (k_wr - 1 + a))
+
 
 def F_wr(v):
     """
@@ -128,6 +172,7 @@ def e_r(p, v):
     """
     return e_s_r(v) + (v/gamma_r(v))*(p - p_s_r(v))
 
+
 def p_r(e, v):
     """
     Equation A9 reactant pressure
@@ -136,6 +181,7 @@ def p_r(e, v):
     :return: pressure p_p
     """
     return p_s_r(v) + (gamma_r(v)/v)*(e - e_s_r(v))
+
 
 def p_s_r(v):
     """
@@ -149,6 +195,7 @@ def p_s_r(v):
                     + C * ((4*B*y(v))**4) / 24.0 # np.math.factorial(4) = 24
                     + (y(v)**2) / (1 - y(v))**4
                     )
+
 
 def y(v):
     return 1 - v/v_0
@@ -165,9 +212,10 @@ def p_s_r_y(y):
         sigma_j += ((4 * B * y)**j / np.math.factorial(j))
 
     return p_hat * (sigma_j
-                    + C * ((4*B*y)**4) / 24.0 # np.math.factorial(4) = 24
+                    + C * ((4*B*y)**4) / 24.0  # np.math.factorial(4) = 24
                     + (y**2) / (1 - y)**4
                     )
+
 
 def e_s_r(v):
     """
@@ -182,34 +230,36 @@ def e_s_r(v):
     INT = integrate.quad(p_s_r_y, 0, y_lim)
     if INT[1] >= 1e-1:
         print(f"WARNING: Integral error in e_s_r is high {INT}")
-    return v_0 * INT[0] + e_0
+    return v_0 * INT[0] + 7.07  #+ e_0  #TODO: Check
 
-def gamma_r(y):
+
+def gamma_r(v):
     """
     Equation A12
-    :param y: specific volume
+    :param v: specific volume
     :return:
     """
-    return gamma_0_r + Z * y
+    return gamma_0_r + Z * y(v)
 
 # Equation A13
-gamma_0_r = 1.22  # beta * c_0**2 / C_p  # Answer from Appendix in paper
+# gamma_0_r = 1.22  # beta * c_0**2 / C_p  # Answer from Appendix in paper
 
 # Equation A14
-Z = -0.8066  # (gamma_sc - gamma_0_r)/y_max  # Answer from Appendix in paper
+# Z = -0.8066  # (gamma_sc - gamma_0_r)/y_max  # Answer from Appendix in paper
 
 # Equation A15
 # y_max = 2 / (gamma_p * (y_max + 2))
 
 if __name__ == '__main__':
     # Sanity checks
+
     print(e_p(2, 3))
     print(p_p(e_p(2, 3), 3))
 
     print(e_r(2, 0.1))
     print(p_r(e_r(2, 0.1), 0.1))
+    """
     print(p_r(e_r(5, 0.1), 0.1))
-
     print(e(p_0, 0.1, 0.0, 0.65))
     print(e(p_0, 0.1, 0.1, 0.65))
     print(e(p_0, 0.1, 1, 0.80))
@@ -219,3 +269,20 @@ if __name__ == '__main__':
     print(e(p_0, 0.5, 1, 1))
     print(e(p_0, 0.5, 0.5, 1))
     print(e(p_0, 0.5, 0.5, 0.5))
+    """
+    print('='*100)
+    #print('e_0 should be 3.983295207817231')  # before fixing gamma_r
+    print('e_0 should be 4.573901456496666')
+    phi_0 = 0.75
+    rho_0 = 1.6  # Initial density
+    v_0 = (rho_0) ** (-1)  # Assume experimental condition
+    p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
+    lambd_0 = 0.0
+    e_0 = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
+    print(f'e_0 out = {e_0}')  #TODO: Build a test suite
+    print(f'Test p_from_e')
+    print(f'P should be 1.0e-9 ')
+    P = p_from_e(e_0, v_0, lambd_0, phi_0)
+    print(f'P out = {P}')
+    print('='*100)
+

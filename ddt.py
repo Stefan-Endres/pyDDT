@@ -65,7 +65,7 @@ def p_v(energy, lambd, phi, guess):
     print(f'energy - e(p, v, lambd, phi) = {energy - e(p, v, lambd, phi)}')
     return p, v
 
-def p_from_e(energy, v, lambd, phi, guess):
+def p_from_e_old(energy, v, lambd, phi, guess):
     """
     Compute the pressure, given energy, volume, lambd and phi
     :param energy: energy
@@ -92,7 +92,7 @@ def p_from_e(energy, v, lambd, phi, guess):
 """Initiation"""
 # Discretization parameters
 # Space
-N = 100  # Number of discrete spatial elements
+N = 30  # Number of discrete spatial elements
 x = np.linspace(0, L, N + 1)  # A vector of discrete points in space
 dx = x[1] - x[0]
 
@@ -171,22 +171,25 @@ def dUdt(U, t):
     #F[1] = U[0] * u**2 + p
 
     # Compute the porosity at every element
-    Phi = U[3]/U[0]  # phi = (rho * phi) / rho
+    PHI = U[3]/U[0]  # phi = (rho * phi) / rho
     #print(f'Phi = {Phi}')
 
     # Compute the reaction progress at every element
-    Lambd = U[4]/U[0]  # lambd = (rho * lambd) / rho
+    LAMBD = U[4]/U[0]  # lambd = (rho * lambd) / rho
     #print(f'Lambd = {Lambd}')
 
-    F[3] = F[0] * Phi  # 'rho * u * phi'  # also U[1] * U[3]/U[0]
-    F[4] = F[0] * Lambd  # 'rho * u * Lambd'  # also U[1] * U[4]/U[0]
+    F[3] = F[0] * PHI  # 'rho * u * phi'  # also U[1] * U[3]/U[0]
+    F[4] = F[0] * LAMBD  # 'rho * u * Lambd'  # also U[1] * U[4]/U[0]
 
     # Compute the pressure
     # Compute the specific volume from the density
     V = U[0]**(-1)  # specific volume
-    #TODO: We need a working routine to find p from e
+    #TODO: Try to vectorize
+    ## P = p_from_e(E, V, LAMBD, PHI)
     P = np.zeros(x.size)
-    P[:] = p_0
+    for ind in range(x.size):  # TODO: Extremely slow
+        P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
+
     #print(f'P = {P}')
 
     F[1] = U[0] * u**2 + P  # rho * u^2 + p
@@ -197,11 +200,11 @@ def dUdt(U, t):
     ## Compute S
     S = np.zeros([5, x.size])
 
-    R_phi = r_phi(P, Phi)
+    R_phi = r_phi(P, PHI)
     #print(f'R_phi = {R_phi}')
     #print(f'r_phi(P[0], Phi[0]) = {r_phi(P[0], Phi[0])}')
     #print(f'r_phi({P[0]}, {Phi[0]}) = {r_phi(P[0], Phi[0])}')
-    R_lambd = r_lambda(P, Lambd)
+    R_lambd = r_lambda(P, LAMBD)
     #print(f'R_lambd = {R_lambd}')
 
     S[3] = U[0] * R_phi  # rho * r_phi

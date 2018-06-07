@@ -11,8 +11,10 @@ L = 0.3  # mm # Length of the tube
 # parameters
 phi_0 = 0.65
 phi_0 = 0.75
-u_0 = 0.0  # Initial velocity in the x-direction  # cm/s???
-u_0_1 = 0.0  # Pellet velocity in the x-direction  # cm/s???
+u_0 = 0.0  # Initial velocity in the x-direction  # cm/us???
+u_0_1 = 0.0  # Pellet velocity in the x-direction  # cm/us???
+u_0_1 = 0.1  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
+#u_0_1 = 0.0  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
 p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
 rho_0 = 1.6  # Initial density
 v_0 = (rho_0)**(-1)  # Assume experimental condition
@@ -29,7 +31,7 @@ A = 2.0  # mm/us  # us = microsecond
 B = 2.50
 C = 0.70
 Z = -0.8066
-gammma_o_r = 1.22
+gamma_0_r = 1.22
 q = 5.71  # kJ/g
 TMD = 1.76  # g/cm^3
 C_v = 992.0
