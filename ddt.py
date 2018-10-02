@@ -90,52 +90,59 @@ def p_from_e_old(energy, v, lambd, phi, guess):
     return p
 
 """Initiation"""
-# Discretization parameters
-# Space
-N = 30  # Number of discrete spatial elements
-x = np.linspace(0, L, N + 1)  # A vector of discrete points in space
-dx = x[1] - x[0]
+def init_cond(printout=True):
+    # Discretization parameters
+    # Space
+    N = 30  # Number of discrete spatial elements
+    x = np.linspace(0, L, N + 1)  # A vector of discrete points in space
+    dx = x[1] - x[0]
 
-# Time
-#dt = 1/(2 * alpha) * dx**2
-#Nt = int(time/dt)
+    # Time
+    #dt = 1/(2 * alpha) * dx**2
+    #Nt = int(time/dt)
 
-# Initialize U container
-U_0 = np.zeros([5, x.size])
+    # Initialize U container
+    U_0 = np.zeros([5, x.size])
 
-# Density
-U_0[0] = rho_0  # Initial density 'rho' in tube
+    # Density
+    U_0[0] = rho_0  # Initial density 'rho' in tube
 
-# Momentum
-U_0[1] = rho_0 * 0.0  # Initial momentum 'rho * v'
-U_0[1, 0] = rho_0 * u_0_1  # Initial momemtum 'rho * u' on the boundary
+    # Momentum
+    U_0[1] = rho_0 * 0.0  # Initial momentum 'rho * v'
+    U_0[1, 0] = rho_0 * u_0_1  # Initial momemtum 'rho * u' on the boundary
 
-# Energy
-e_0 = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
-U_0[2] = rho_0 * (e_0 + u_0**2/2.0)  # Initial energy 'rho * (e + u**2/2.0)'
-U_0[2, 0] = rho_0 * (e_0 + u_0_1**2/2.0)  # Initial energy 'rho * (e + u**2/2.0)
-print(f'e_0 = {e_0}')
-print(f'U_0[2] = {U_0[2]}')
-# Porosity
-U_0[3] = rho_0 * phi_0  # Initial porosity 'rho * phi'
+    # Energy
+    e_0 = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
+    U_0[2] = rho_0 * (e_0 + u_0**2/2.0)  # Initial energy 'rho * (e + u**2/2.0)'
+    U_0[2, 0] = rho_0 * (e_0 + u_0_1**2/2.0)  # Initial energy 'rho * (e + u**2/2.0)
+    if printout:
+        print(f'e_0 = {e_0}')
+        print(f'U_0[2] = {U_0[2]}')
+    # Porosity
+    U_0[3] = rho_0 * phi_0  # Initial porosity 'rho * phi'
 
-# Reaction progress
-U_0[4] = rho_0 * lambd_0  # Initial reaction progress 'rho_0 * lambd_0'
+    # Reaction progress
+    U_0[4] = rho_0 * lambd_0  # Initial reaction progress 'rho_0 * lambd_0'
 
-#print(U_0)
-# Compute initial reactions (should be 0.0)
-r_phi_0 = r_phi(p_0, phi_0)
-r_lambda_0 = r_lambda(p_0, lambd_0)
-print("----"*6)
-print("Initial reaction rates:")
-print("----"*6)
-print(f'r_phi_0({p_0}, {phi_0}) = {r_phi_0}')
-print(f'r_lambda_0({p_0}, {lambd_0}) = {r_lambda_0}')
-print("----"*6)
-#e(p, v, lambd, phi)
+    #print(U_0)
+    # Compute initial reactions (should be 0.0)
+    r_phi_0 = r_phi(p_0, phi_0)
+    r_lambda_0 = r_lambda(p_0, lambd_0)
+    if printout:
+        print("----"*6)
+        print("Initial reaction rates:")
+        print("----"*6)
+        print(f'r_phi_0({p_0}, {phi_0}) = {r_phi_0}')
+        print(f'r_lambda_0({p_0}, {lambd_0}) = {r_lambda_0}')
+        print("----"*6)
+    #e(p, v, lambd, phi)
 
-#RHO_0_fft = psdiff(RHO_0, period=L)
+    #RHO_0_fft = psdiff(RHO_0, period=L)
 
+    # Set the time sample grid.
+    t = np.linspace(t0, tf, 501)
+    dt = t[1]
+    return U_0, x, t, dt
 
 if 0:  # TODO: Pressure and volume calculations not working
     print('='*100)
@@ -158,7 +165,8 @@ def dUdt(U, t):
     :return: F, S
     """
     ## Compute F
-    F = np.zeros([5, x.size])
+    #F = np.zeros([5, x.size])
+    F = np.zeros_like(U)
     F[0] = U[1]  # 'rho * u'
     # Compute the velocity at every element
     u = U[1]/U[0]  # u = rho * u / rho
@@ -186,8 +194,8 @@ def dUdt(U, t):
     V = U[0]**(-1)  # specific volume
     #TODO: Try to vectorize
     ## P = p_from_e(E, V, LAMBD, PHI)
-    P = np.zeros(x.size)
-    for ind in range(x.size):  # TODO: Extremely slow
+    P = np.zeros(np.shape(U)[1])
+    for ind in range(np.shape(U)[1]):  # TODO: Extremely slow
         P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
 
     #print(f'P = {P}')
@@ -198,7 +206,8 @@ def dUdt(U, t):
     F[2] = F[0] * (E + u**2/2.0 + P//U[0])  # 'rho * u * (e + u^2/2 + p/rho)
 
     ## Compute S
-    S = np.zeros([5, x.size])
+    #S = np.zeros([5, x.size])
+    S = np.zeros_like(U)
 
     R_phi = r_phi(P, PHI)
     #print(f'R_phi = {R_phi}')
@@ -225,19 +234,25 @@ def dUdt(U, t):
                      dFdx3,
                      dFdx4,
                      ])
+
+    d2Fdx0 = psdiff(F[0], order=2, period=L)
+    d2Fdx1 = psdiff(F[1], order=2, period=L)
+    d2Fdx2 = psdiff(F[2], order=2, period=L)
+    d2Fdx3 = psdiff(F[3], order=2, period=L)
+    d2Fdx4 = psdiff(F[4], order=2, period=L)
+
+    dF2dx = np.array([d2Fdx0,
+                      d2Fdx1,
+                      d2Fdx2,
+                      d2Fdx3,
+                      d2Fdx4,
+                      ])
     #print(dFdx)
     #print(S - dFdx)
-    return S - dFdx
+    return S - dFdx - 1e-1 * dF2dx
 
-dUdt(U_0, 0)
 
-# Set the time sample grid.
-t = np.linspace(t0, tf, 501)
-dt = t[1]
-
-print(U_0[0,:].size)
-print(U_0[0,:])
-def rk3(U_0, t):
+def rk3(U_0, t, dt):
     # TVD RK 3 solver
     U = U_0
     t_c = t0  # current time tracker
@@ -277,11 +292,18 @@ def plot_u_t(x, t, U, title=r'Density $\rho$ (g/mm$^3$)'):
     plt.show()
 
 if __name__ == "__main__":
-    sol = rk3(U_0, t)
+    U_0, x, t, dt = init_cond(printout=True)
+
+    # Test
+    dUdt(U_0, 0)
+    print(U_0[0,:].size)
+    print(U_0[0,:])
+
+    sol = rk3(U_0, t, dt)
     U = sol
     #for i in range(U[:, 0].size):
     #    U[i] += 0.1*i
-
+    print(U)
     plot_u_t(x, t, U)
     #CS = plot.contour(x, t, U)
     #cbar = plot.colorbar(CS)

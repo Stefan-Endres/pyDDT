@@ -13,8 +13,8 @@ phi_0 = 0.65
 phi_0 = 0.75
 u_0 = 0.0  # Initial velocity in the x-direction  # cm/us???
 u_0_1 = 0.0  # Pellet velocity in the x-direction  # cm/us???
-u_0_1 = 0.1  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
-#u_0_1 = 0.0  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
+u_0_1 = 0.01  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
+u_0_1 = 0.0  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
 p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
 rho_0 = 1.6  # Initial density
 v_0 = (rho_0)**(-1)  # Assume experimental condition
@@ -22,6 +22,7 @@ lambd_0 = 0  # Initial reaction progress
              # Ratio of mass products / total mass of a volume element
 
 e_0_guess = 7.07  # kJ / cm3 Initial guess for starting internal energy
+e_0_guess = 3.98329  # kJ / cm3 Initial guess for starting internal energy
 e_0 = e_0_guess  # NOTE: This value is computed in ddt.py initialization
                  #  e(p_0, v_0, lambd_0, phi_0) =  3.983295207817231
 
