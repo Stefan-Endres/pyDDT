@@ -2,6 +2,11 @@
 """
 Defregation to degredation transition model for PETN powders
 Ref. Saenz and Stewart J. App. Phys. (2008)
+
+WENO hints
+
+https://scicomp.stackexchange.com/questions/20054/implementation-of-1d-advection-in-python-using-weno-and-eno-schemes
+
 """
 import numpy as np
 from scipy import optimize
@@ -90,10 +95,10 @@ def p_from_e_old(energy, v, lambd, phi, guess):
     return p
 
 """Initiation"""
-def init_cond(printout=True):
+def init_cond(printout=True, method='s'):
     # Discretization parameters
     # Space
-    N = 30  # Number of discrete spatial elements
+    #N = 60  # Number of discrete spatial elements
     x = np.linspace(0, L, N + 1)  # A vector of discrete points in space
     dx = x[1] - x[0]
 
@@ -102,17 +107,20 @@ def init_cond(printout=True):
     #Nt = int(time/dt)
 
     # Initialize U container
-    U_0 = np.zeros([5, x.size])
+    if method is 's':
+        U_0 = np.zeros([5, x.size])  # pseudo spectral method
+    elif method is 'w':
+        U_0 = np.zeros([5, x.size + 2 * gc])  # weno
 
     # Density
     U_0[0] = rho_0  # Initial density 'rho' in tube
 
     # Momentum
-    U_0[1] = rho_0 * 0.0  # Initial momentum 'rho * v'
-    U_0[1, 0] = rho_0 * u_0_1  # Initial momemtum 'rho * u' on the boundary
+    U_0[1] = rho_0 * u_0  # Initial momentum 'rho * v'
+    U_0[1, 0:3] = rho_0 * u_0_1  # Initial momemtum 'rho * u' on the boundary
 
     # Energy
-    e_0 = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
+#TODO: Do we need this?    e_0 = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
     U_0[2] = rho_0 * (e_0 + u_0**2/2.0)  # Initial energy 'rho * (e + u**2/2.0)'
     U_0[2, 0] = rho_0 * (e_0 + u_0_1**2/2.0)  # Initial energy 'rho * (e + u**2/2.0)
     if printout:
@@ -141,8 +149,19 @@ def init_cond(printout=True):
 
     # Set the time sample grid.
     t = np.linspace(t0, tf, 501)
+    #t = np.linspace(t0, tf, 50000)
     dt = t[1]
-    return U_0, x, t, dt
+
+    #WENO
+    # adding ghost cells
+    #gcr = x[-1] + np.linspace(1, gc, gc) * dx
+    #gcl = x[0] + np.linspace(-gc, -1, gc) * dx
+    #xc = np.append(x, gcr)
+    #xc = np.append(gcl, xc)
+    #uc = np.append(u, u[-gc:])
+    #uc = np.append(u[0:gc], uc)
+
+    return U_0, x, t, dt, dx
 
 if 0:  # TODO: Pressure and volume calculations not working
     print('='*100)
@@ -197,13 +216,13 @@ def dUdt(U, t):
     P = np.zeros(np.shape(U)[1])
     for ind in range(np.shape(U)[1]):  # TODO: Extremely slow
         P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
-
     #print(f'P = {P}')
 
     F[1] = U[0] * u**2 + P  # rho * u^2 + p
     #print(f'F[1] = {F[1]}')
 
-    F[2] = F[0] * (E + u**2/2.0 + P//U[0])  # 'rho * u * (e + u^2/2 + p/rho)
+    F[2] = F[0] * (E + u**2/2.0 + P/U[0])
+    # 'rho * u * (e + u^2/2 + p/rho)
 
     ## Compute S
     #S = np.zeros([5, x.size])
@@ -214,10 +233,11 @@ def dUdt(U, t):
     #print(f'r_phi(P[0], Phi[0]) = {r_phi(P[0], Phi[0])}')
     #print(f'r_phi({P[0]}, {Phi[0]}) = {r_phi(P[0], Phi[0])}')
     R_lambd = r_lambda(P, LAMBD)
+
     #print(f'R_lambd = {R_lambd}')
 
     S[3] = U[0] * R_phi  # rho * r_phi
-    S[4] = U[0] * R_lambd # rho * r_lam
+    S[4] = U[0] * R_lambd  # rho * r_lam
     #print(S)
 
     # Gradient of F
@@ -249,7 +269,179 @@ def dUdt(U, t):
                       ])
     #print(dFdx)
     #print(S - dFdx)
-    return S - dFdx - 1e-1 * dF2dx
+    return S - dFdx - 0.1e-3 * dF2dx
+
+
+def dUwdt(U, t, dx):
+    """
+    Compute dUdt, given U.
+    Solve the algebraic system of equations to find the variables.
+    (Given U, compute F and S
+    :param U: Vectors of u
+    :return: F, S
+    """
+    if 1:
+        ## Compute F
+        # F = np.zeros([5, x.size])
+        F = np.zeros_like(U)
+        F[0] = U[1]  # 'rho * u'
+        # Compute the velocity at every element
+        u = U[1] / U[0]  # u = rho * u / rho
+        # print(u)
+        # Compute the energy (temperature) at every element  # Validated
+        E = U[2] / U[
+            0] - u ** 2 / 2.0  # 'e = rho * ((e + u**2/2.0))/rho - u**2/2.0'
+
+        # print(f'E = {E}')
+        # e(p, v, lambd, phi)
+        # F[1] = U[0] * u**2 + p
+
+        # Compute the porosity at every element
+        PHI = U[3] / U[0]  # phi = (rho * phi) / rho
+        # print(f'Phi = {Phi}')
+
+
+        # Compute the reaction progress at every element
+        LAMBD = U[4] / U[0]  # lambd = (rho * lambd) / rho
+        # print(f'Lambd = {Lambd}')
+
+        F[3] = F[0] * PHI  # 'rho * u * phi'  # also U[1] * U[3]/U[0]
+        F[4] = F[0] * LAMBD  # 'rho * u * Lambd'  # also U[1] * U[4]/U[0]
+
+        # Compute the pressure
+        # Compute the specific volume from the density
+        V = U[0] ** (-1)  # specific volume
+        # TODO: Try to vectorize
+        ## P = p_from_e(E, V, LAMBD, PHI)
+        P = np.zeros(np.shape(U)[1])
+        for ind in range(np.shape(U)[1]):  # TODO: Extremely slow
+            P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
+
+        # print(f'P = {P}')
+
+        F[1] = U[0] * u ** 2 + P  # rho * u^2 + p
+        # print(f'F[1] = {F[1]}')
+
+        F[2] = F[0] * (E + u ** 2 / 2.0 + P / U[0])
+        # 'rho * u * (e + u^2/2 + p/rho)
+
+        ## Compute S
+        # S = np.zeros([5, x.size])
+        S = np.zeros_like(U)
+
+        R_phi = r_phi(P, PHI)
+        # print(f'R_phi = {R_phi}')
+        # print(f'r_phi(P[0], Phi[0]) = {r_phi(P[0], Phi[0])}')
+        # print(f'r_phi({P[0]}, {Phi[0]}) = {r_phi(P[0], Phi[0])}')
+        R_lambd = r_lambda(P, LAMBD)
+        # print(f'R_lambd = {R_lambd}')
+
+        S[3] = U[0] * R_phi  # rho * r_phi
+        S[4] = U[0] * R_lambd  # rho * r_lam
+        # print(S)
+
+    # Gradient of F
+    # Compute fluxes
+    # Note fluxes do not use ghost cells
+    # NOTE: We assume that the f = f_plus + f_neg decomposition is f_plus due
+    #       to the shockwave only travelling in one direction
+
+    # Fluxes from 0 + 1/2 to j - 1/2
+    #TODO: We can extend these schemes to optionally use more ghost cells.
+
+    # Compute U^()_{i+1/2} to be used in weno
+    # NOTE: These arrrays are only defined for f_{0 + 1/2} to f_{j + 1/2}
+    F_1 = 3 / 8.0 * F[:, :-4] - 5 / 4.0 * F[:, 1:-3] + 15 / 8.0 * F[:, 2:-2]
+    if 0:
+        print(f'U1')
+        print(f'F[0]= {F[0]}')
+        print(f'F[0, :-2] = {F[0, :-2]}')
+        print(f'F[0, 1:-1] = {F[0, 1:-1]}')
+        print(f'F[0, 0, 2:] = {F[0, 2:]}')
+    #print(f'U_1 = {U_1}')
+    F_2 = -1 / 8.0 * F[:, 1:-3] + 3 / 4.0 * F[:, 2:-2] + 3 / 8.0 * F[:, 3:-1]
+    if 0:
+        print(f'U2')
+        print(f'F[0]= {F[0]}')
+        print(f'F[0, 1:-2] = {F[0, 1:-2]}')
+        print(f'F[0, 2:-1] = {F[0, 2:-1]}')
+        print(f'F[0, 3:]= {F[0, 3:]}')
+
+        print(f'np.shape(U_1) = {np.shape(U_1)}')
+        print(f'np.shape(U_2) = {np.shape(U_2)}')
+        print(f'np.shape(F) = {np.shape(F)}')
+    F_3 = 3 / 8.0 * F[:, 2:-2] + 3/4.0 * F[:, 3:-1] - 1/8.0 * F[:, 4:]
+
+
+    # ENO scheme
+    gamma_1 = 1/16.0
+    gamma_2 = 5/8.0
+    gamma_3 = 5/16.0
+
+    # u_{i + 1/2}
+    # u_i12 = gamma_1 * F_1 + gamma_2 * F_2 + gamma_3 * F_3
+    # The above is the ENO solution
+
+    # The WENO scheme:
+    # http://www.scholarpedia.org/article/WENO_methods
+    fi_2 = F[:, :-4]  # f_{i - 2}   (this is u_{i - 2} in the article)
+    fi_1 = F[:, 1:-3]  # f_{i - 1}
+    f_i = F[:, 2:-2]  # f_{i}
+    beta_1 = (1/3.0) * (4 * fi_2**2 - 19.0 * fi_2 * fi_1
+                        + 25 * fi_1**2 + 11 * fi_2 * f_i
+                        - 31 * fi_1 * f_i + 10 * f_i**2)
+
+    fi_1 = F[:, 1:-3]  # f_{i - 1}   (this is u_{i - 1} in the article)
+    fi = F[:, 2:-2]  # f_{i - 1}
+    fi_p1 = F[:, 3:-1]
+    beta_2 = (1/3.0) * (4 * fi_1**2 - 13 * fi_1 * fi
+                        + 13 * fi**2 + 5 * fi_1 * fi_p1
+                        - 13 * fi * fi_p1 + 4 * fi_p1**2)
+
+    fi = F[:, 2:-2]  # f_i  (this is u_i in the article)
+    fi_p1 = F[:, 3:-1]  # f_{i + 1}
+    fi_p2 = F[:, 4:]  # f_{i + 2}
+    beta_3 = (1/3.0) * (10 * fi**2 - 31 * fi * fi_p1
+                        + 25 * fi_p1**2 + 11 * fi * fi_p2
+                        - 19 * fi_p1 * fi_p2 + 4 * fi_p2**2)
+
+    w_tilde_1 = gamma_1 / (1e-6 + beta_1)**2
+    w_tilde_2 = gamma_1 / (1e-6 + beta_2)**2
+    w_tilde_3 = gamma_1 / (1e-6 + beta_3)**2
+    w_tilde_sum = w_tilde_1 + w_tilde_2 + w_tilde_3
+
+    w_1 = w_tilde_1 / w_tilde_sum
+    w_2 = w_tilde_2 / w_tilde_sum
+    w_3 = w_tilde_3 / w_tilde_sum
+
+    u_i12 = w_1 * F_1 + w_2 * F_2 + w_3 * F_3  # u_{i + 1/2}
+
+    # Compute the flux f_{j+1/2} - f_{j-1/2}
+    f = u_i12
+    #NOTE: We define flux at j = 0 to be = f_{0+1/2} - 0
+    #      therefore we assume f_{0-1/2} = 0
+    #flux = np.zeros([5, np.shape(F)[1] - 4])  # remove 4 ghost cells
+    flux = np.zeros_like(f)
+    if 0:
+        print(f'np.shape(f) = {np.shape(f)}')
+        print(f'np.shape(flux) = {np.shape(flux)}')
+        print(f'np.shape(flux[:, 1:]) = {np.shape(flux[:, 1:])}')
+        print(f'np.shape(f[:, 1:] - f[:, :1]) = {np.shape(f[:, 1:] - f[:, :1])}')
+
+    flux[:, 1:] = f[:, 1:] - f[:, :-1]
+    flux[:, 0] = f[:, 0]  #TODO: Check
+    if 0:
+        print(f'f = {f}')
+        print(f'f[:, 1:] - f[:, :-1] = {f[:, 1:] - f[:, :-1]}')
+        print(f'flux = {flux}')
+
+    # Return dFdt = - 1/dx (f_{j+1/2} - f_{j-1/2}) + S
+    dFdx = np.zeros_like(F)
+    dFdx[:, 2:-2] = - 1/dx * (flux)
+    #sol = S - F
+    sol = S + F
+    #print(f'break solver by printing unknown {unknown}')
+    return sol
 
 
 def rk3(U_0, t, dt):
@@ -274,6 +466,36 @@ def rk3(U_0, t, dt):
     sol = U_0_sol
     return sol
 
+
+def rk3w(U_0, t, dt, dx):
+    # TVD RK 3 solver
+    U = U_0
+    #t_c = t0  # current time tracker
+    U_0_sol = np.zeros([t.size, 5, U_0[0, :].size])
+    U_0_sol[0] = U_0#[0]
+    ind = 0  # solution index tracker
+    #while t_c <= tf:
+    for t_c in t[1:]:
+
+        # Compute new U_t+1
+        #U_1 = U + dt * dUdt(U, t_c)
+        U_1 = U + dt * dUwdt(U, t_c, dx)
+        #U_2 = 3/4.0 * U + 1/4.0 * U_1 + 1/4.0 * dt * dUdt(U_1, t_c)
+        U_2 = 3/4.0 * U + 1/4.0 * U_1 + 1/4.0 * dt * dUwdt(U_1, t_c, dx)
+        #U = 1/3.0 * U + 2/3.0 * U_2 + 2/3.0 * dt * dUdt(U_2, t_c)
+        U = 1/3.0 * U + 2/3.0 * U_2 + 2/3.0 * dt * dUwdt(U_2, t_c, dx)
+
+        ind += 1
+        #U_0_sol[ind] = U#[0]  # density solution
+        U_0_sol[ind] = U
+
+
+    #U_0_sol[-1] = U_0_sol[-2]  # Set final row of zeros equal to 2nd to last
+    #sol = U_0_sol[:, gc:-(1+gc)]  # All rows, but exclude column of ghost cells
+    sol = U_0_sol[:, :, gc:-(1+gc)]  # All rows, but exclude column of ghost cells
+    #sol = U_0_sol
+    return sol
+
 #print(rk3(U_0, t))
 #print(sol[:, 0])
 
@@ -292,21 +514,35 @@ def plot_u_t(x, t, U, title=r'Density $\rho$ (g/mm$^3$)'):
     plt.show()
 
 if __name__ == "__main__":
-    U_0, x, t, dt = init_cond(printout=True)
+
+    method = 'w'
+    # 's' for Pseudo Spectral Method
+    # 'w' for Weno schemes
+
+    U_0, x, t, dt, dx = init_cond(printout=True, method=method)
 
     # Test
     dUdt(U_0, 0)
     print(U_0[0,:].size)
     print(U_0[0,:])
 
-    sol = rk3(U_0, t, dt)
-    U = sol
-    #for i in range(U[:, 0].size):
-    #    U[i] += 0.1*i
-    print(U)
-    plot_u_t(x, t, U)
-    #CS = plot.contour(x, t, U)
-    #cbar = plot.colorbar(CS)
+    # Pseudo Spectral Method
+    if method is 's':
+        sol = rk3(U_0, t, dt)
+        U = sol
+        plot_u_t(x, t, U)
 
-    #plot.contour(t, t, t)
-    #plot.show()
+    # WENO schemes:
+    elif method is 'w':
+        sol = rk3w(U_0, t, dt, dx)
+        U = sol
+        #for i in range(U[:, 0].size):
+        #    U[i] += 0.1*i
+        print(U)
+        print(U[0])
+        plot_u_t(x, t, U[:, 0, :])
+        #CS = plot.contour(x, t, U)
+        #cbar = plot.colorbar(CS)
+
+        #plot.contour(t, t, t)
+        #plot.show()

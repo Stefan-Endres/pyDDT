@@ -71,6 +71,7 @@ def p_from_e(energy, v, lambd, phi):
     e = energy
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
+    #TODO: Deleate reduntant computation
     P = phi*(gamma_p(v_p)*lambd*p_s_p(v_p)*v_r
              - gamma_r(v_r)*lambd*p_s_r(v_r)*v_p
              + gamma_r(v_r)*p_s_r(v_r)*v_p
@@ -83,7 +84,15 @@ def p_from_e(energy, v, lambd, phi):
             - gamma_r(v_r)*lambd*v_p
             + gamma_r(v_r)*v_p)
 
-    P = phi*(gamma_p(v_p)*gamma_r(v_r)*e - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd + gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)*lambd - gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r) - gamma_p(v_p)*lambd*p_s_r(v_r)*v_r + gamma_p(v_p)*p_s_r(v_r)*v_r + gamma_r(v_r)*lambd*p_s_p(v_p)*v_p)/(-gamma_p(v_p)*lambd*v_r + gamma_p(v_p)*v_r + gamma_r(v_r)*lambd*phi*v_p)
+    P = phi*(gamma_p(v_p)*gamma_r(v_r)*e
+             - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd
+             + gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)*lambd
+             - gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)
+             - gamma_p(v_p)*lambd*p_s_r(v_r)*v_r
+             + gamma_p(v_p)*p_s_r(v_r)*v_r
+             + gamma_r(v_r)*lambd*p_s_p(v_p)*v_p)/(-gamma_p(v_p)*lambd*v_r
+                                                   + gamma_p(v_p)*v_r
+                                                   + gamma_r(v_r)*lambd*phi*v_p)
     return P
 
 def e_i(p, v, lambd, phi):
@@ -230,7 +239,8 @@ def e_s_r(v):
     INT = integrate.quad(p_s_r_y, 0, y_lim)
     if INT[1] >= 1e-1:
         print(f"WARNING: Integral error in e_s_r is high {INT}")
-    return v_0 * INT[0] + 7.07  #+ e_0  #TODO: Check
+    #return v_0 * INT[0] + 7.07  #+ e_0  #TODO: Check
+    return v_0 * INT[0] + e_0  #TODO: Check
 
 
 def gamma_r(v):
@@ -272,17 +282,18 @@ if __name__ == '__main__':
     """
     print('='*100)
     #print('e_0 should be 3.983295207817231')  # before fixing gamma_r
-    print('e_0 should be 4.573901456496666')
+    #print('e_0 should be 4.573901456496666')
+    print(f'e_0_test should be equal to param e_0 = {e_0}')
     phi_0 = 0.75
     rho_0 = 1.6  # Initial density
     v_0 = (rho_0) ** (-1)  # Assume experimental condition
     p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
     lambd_0 = 0.0
-    e_0 = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
-    print(f'e_0 out = {e_0}')  #TODO: Build a test suite
+    e_0_test = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
+    print(f'e_0_test out = {e_0}')  #TODO: Build a test suite
     print(f'Test p_from_e')
     print(f'P should be 1.0e-9 ')
-    P = p_from_e(e_0, v_0, lambd_0, phi_0)
+    P = p_from_e(e_0_test, v_0, lambd_0, phi_0)
     print(f'P out = {P}')
     print('='*100)
 

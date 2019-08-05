@@ -5,16 +5,27 @@ import numpy as np
 """Initial conditions and simulation parameters"""
 # Simulation
 t0 = 0.0  # us (microseconds) # Simulation start time
-tf = 0.025  # us (microseconds) # Simulation finish time
-L = 0.3  # mm # Length of the tube
+tf = 0.0025  # us (microseconds) # Simulation finish time
+#tf = 0.0025e-3  # us (microseconds) # Simulation finish time
+#tf = 2.5e-03  # us (microseconds) # Simulation finish time
+#L = 0.3  # mm # Length of the tube
+L = 0.01  # 0.10 mm = 0.01 cm # Length of the tube
+
+# WENO (DO NOT CHANGE UNTIL INITS ARE INVARIANT)
+N = 60  # Number of discrete spatial elements
+#N = 200  # Number of discrete spatial elements
+k = 3  # number of weights Order= 2*k-1
+gc = k - 1  # number of ghost cells
+
 
 # parameters
 phi_0 = 0.65
 phi_0 = 0.75
-u_0 = 0.0  # Initial velocity in the x-direction  # cm/us???
-u_0_1 = 0.0  # Pellet velocity in the x-direction  # cm/us???
-u_0_1 = 0.01  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
-u_0_1 = 0.0  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
+u_0 = -0.1  # Initial velocity in the x-direction  # cm/us???
+u_0_1 = 0.0#0.1  # Pellet velocity in the x-direction  # cm/us???
+#u_0_1 = 1e-8  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
+#u_0_1 = 1e-1  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
+#u_0_1 = 0.0  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
 p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
 rho_0 = 1.6  # Initial density
 v_0 = (rho_0)**(-1)  # Assume experimental condition
@@ -22,7 +33,10 @@ lambd_0 = 0  # Initial reaction progress
              # Ratio of mass products / total mass of a volume element
 
 e_0_guess = 7.07  # kJ / cm3 Initial guess for starting internal energy
-e_0_guess = 3.98329  # kJ / cm3 Initial guess for starting internal energy
+#e_0_guess = 7.31824233  # kJ / cm3 Initial guess for starting internal energy
+#e_0_guess = 4.573901456496666
+  # kJ / cm3 Initial guess for starting internal energy
+#e_0_guess = 3.98329  # kJ / cm3 Initial guess for starting internal energy
 e_0 = e_0_guess  # NOTE: This value is computed in ddt.py initialization
                  #  e(p_0, v_0, lambd_0, phi_0) =  3.983295207817231
 
@@ -40,7 +54,8 @@ C_v = 992.0
 a = 0.7579
 k_wr = 1.30
 v_c = 1.2171  # cm^3/g
-p_c = 1.5899  #Gpa
+p_c = 1.5899  # Gpa
+#p_c = 6.0  # Gpa
 n = 0.9570
 b = 0.80
 C_v = 650  # J /(kg K)
