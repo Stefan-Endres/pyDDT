@@ -6,6 +6,7 @@ import numpy as np
 # Simulation
 t0 = 0.0  # us (microseconds) # Simulation start time
 tf = 0.0025  # us (microseconds) # Simulation finish time
+tf = 0.025  # us (microseconds) # Simulation finish time
 #tf = 0.0025e-3  # us (microseconds) # Simulation finish time
 #tf = 2.5e-03  # us (microseconds) # Simulation finish time
 #L = 0.3  # mm # Length of the tube
@@ -21,7 +22,9 @@ gc = k - 1  # number of ghost cells
 # parameters
 phi_0 = 0.65
 phi_0 = 0.75
-u_0 = -0.1  # Initial velocity in the x-direction  # cm/us???
+#u_0 = -0.1  # Initial velocity in the x-direction  # cm/us???
+u_0 = 0.1  # Initial velocity in the x-direction  # cm/us???
+u_0 = 1.0  # Initial velocity in the x-direction  # cm/us???
 u_0_1 = 0.0#0.1  # Pellet velocity in the x-direction  # cm/us???
 #u_0_1 = 1e-8  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
 #u_0_1 = 1e-1  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
@@ -33,6 +36,7 @@ lambd_0 = 0  # Initial reaction progress
              # Ratio of mass products / total mass of a volume element
 
 e_0_guess = 7.07  # kJ / cm3 Initial guess for starting internal energy
+e_0_guess = 3.731  # kJ / g  (Wescott(?))
 #e_0_guess = 7.31824233  # kJ / cm3 Initial guess for starting internal energy
 #e_0_guess = 4.573901456496666
   # kJ / cm3 Initial guess for starting internal energy

@@ -351,7 +351,7 @@ def dUwdt(U, t, dx):
 
     # Compute U^()_{i+1/2} to be used in weno
     # NOTE: These arrrays are only defined for f_{0 + 1/2} to f_{j + 1/2}
-    F_1 = 3 / 8.0 * F[:, :-4] - 5 / 4.0 * F[:, 1:-3] + 15 / 8.0 * F[:, 2:-2]
+    F_1 = (3 / 8.0) * F[:, :-4] - (5 / 4.0) * F[:, 1:-3] + (15 / 8.0) * F[:, 2:-2]
     if 0:
         print(f'U1')
         print(f'F[0]= {F[0]}')
@@ -359,7 +359,7 @@ def dUwdt(U, t, dx):
         print(f'F[0, 1:-1] = {F[0, 1:-1]}')
         print(f'F[0, 0, 2:] = {F[0, 2:]}')
     #print(f'U_1 = {U_1}')
-    F_2 = -1 / 8.0 * F[:, 1:-3] + 3 / 4.0 * F[:, 2:-2] + 3 / 8.0 * F[:, 3:-1]
+    F_2 = (-1 / 8.0) * F[:, 1:-3] + (3 / 4.0) * F[:, 2:-2] + (3 / 8.0) * F[:, 3:-1]
     if 0:
         print(f'U2')
         print(f'F[0]= {F[0]}')
@@ -370,7 +370,7 @@ def dUwdt(U, t, dx):
         print(f'np.shape(U_1) = {np.shape(U_1)}')
         print(f'np.shape(U_2) = {np.shape(U_2)}')
         print(f'np.shape(F) = {np.shape(F)}')
-    F_3 = 3 / 8.0 * F[:, 2:-2] + 3/4.0 * F[:, 3:-1] - 1/8.0 * F[:, 4:]
+    F_3 = (3 / 8.0 ) * F[:, 2:-2] + (3/4.0) * F[:, 3:-1] - (1/8.0) * F[:, 4:]
 
 
     # ENO scheme
@@ -406,8 +406,8 @@ def dUwdt(U, t, dx):
                         - 19 * fi_p1 * fi_p2 + 4 * fi_p2**2)
 
     w_tilde_1 = gamma_1 / (1e-6 + beta_1)**2
-    w_tilde_2 = gamma_1 / (1e-6 + beta_2)**2
-    w_tilde_3 = gamma_1 / (1e-6 + beta_3)**2
+    w_tilde_2 = gamma_2 / (1e-6 + beta_2)**2
+    w_tilde_3 = gamma_3 / (1e-6 + beta_3)**2
     w_tilde_sum = w_tilde_1 + w_tilde_2 + w_tilde_3
 
     w_1 = w_tilde_1 / w_tilde_sum

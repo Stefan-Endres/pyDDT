@@ -190,9 +190,6 @@ def WENO(xloc, uloc, k):
     return (ul,ur)
 
 if __name__ == "__main__":
-
-
-
     N = 81
     dx = 2. / (N - 1)
     x = linspace(0, 2, N)
