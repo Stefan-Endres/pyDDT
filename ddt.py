@@ -29,6 +29,7 @@ def r_phi(p, phi):
     :param phi: Porosity
     :return: r_phi  # compaction rate in us-1
     """
+    #return 0.0
     return k_phi * (p - p_0 - P_h * (1 - np.sqrt((phi_0*(1 - phi))
                                                  / (phi*(1 - phi_0))
                                                  )
@@ -43,6 +44,7 @@ def r_lambda(p, lambd):
     :param lambd: Reaction progression \in [0, 1]
     :return:
     """
+    return 0.0
     return np.heaviside(p - p_ign, 1) * k * (p/p_cj)**mu * (1 - lambd)**upsilon
 
 def p_v(energy, lambd, phi, guess):
@@ -149,7 +151,7 @@ def init_cond(printout=True, method='s'):
 
     # Set the time sample grid.
     t = np.linspace(t0, tf, 501)
-    #t = np.linspace(t0, tf, 50000)
+    t = np.linspace(t0, tf, 500)
     dt = t[1]
 
     #WENO
@@ -430,16 +432,20 @@ def dUwdt(U, t, dx):
 
     flux[:, 1:] = f[:, 1:] - f[:, :-1]
     flux[:, 0] = f[:, 0]  #TODO: Check
-    if 0:
-        print(f'f = {f}')
-        print(f'f[:, 1:] - f[:, :-1] = {f[:, 1:] - f[:, :-1]}')
+    if 1:
+        #print(f'f = {f}')
+        #print(f'f[:, 1:] - f[:, :-1] = {f[:, 1:] - f[:, :-1]}')
         print(f'flux = {flux}')
 
     # Return dFdt = - 1/dx (f_{j+1/2} - f_{j-1/2}) + S
     dFdx = np.zeros_like(F)
+
+
     dFdx[:, 2:-2] = - 1/dx * (flux)
     #sol = S - F
     sol = S + F
+    sol = S + dFdx
+
     #print(f'break solver by printing unknown {unknown}')
     return sol
 
@@ -476,7 +482,6 @@ def rk3w(U_0, t, dt, dx):
     ind = 0  # solution index tracker
     #while t_c <= tf:
     for t_c in t[1:]:
-
         # Compute new U_t+1
         #U_1 = U + dt * dUdt(U, t_c)
         U_1 = U + dt * dUwdt(U, t_c, dx)

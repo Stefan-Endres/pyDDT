@@ -135,7 +135,7 @@ def p_s_p(v):
     :return:
     """
     return p_c * ((0.5*(v/v_c)**n + 0.5*(v/v_c)**(-n))**(a/n)
-                  / ((v/v_c)**(k_wr + a))) * ((k_wr + 1 + F_wr(v))/
+                  / ((v/v_c)**(k_wr + a))) * ((k_wr - 1 + F_wr(v))/
                                              (k_wr - 1 + a))
 
 
