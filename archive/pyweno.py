@@ -5,7 +5,7 @@ https://github.com/memmett/PyWENO/blob/master/pyweno/weno.py
 """
 
 import numpy as np
-#import pyweno.cweno
+import pyweno.cweno
 
 def reconstruct(q, k, points,
                 n=None,
@@ -75,7 +75,9 @@ def reconstruct(q, k, points,
 
   # smoothness
   if smoothness is None:
-    smoothness = np.zeros((N,k))
+    print(f'N = {N}')
+    print(f'k = {k}')
+    smoothness = np.zeros((N, int(k)))
     func(q, smoothness)
 
   assert(smoothness.shape == (N,k))

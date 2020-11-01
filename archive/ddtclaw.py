@@ -79,7 +79,7 @@ solution = pyclaw.Solution(solver.num_eqn, domain)
 state = solution.state
 xc = state.grid.p_centers[0]      # Array containing the cell center coordinates
 state.q[0, :] = rho_0
-state.q[1,:] = 0.                       # Velocity: zero
+state.q[1, :] = 0.                       # Velocity: zero
 print(state.q[0, :])
 #state.q[1,:] = 0.
 

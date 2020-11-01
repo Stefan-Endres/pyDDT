@@ -6,37 +6,21 @@ import numpy as np
 # Simulation
 t0 = 0.0  # us (microseconds) # Simulation start time
 tf = 0.0025  # us (microseconds) # Simulation finish time
-tf = 0.0001  # us (microseconds) # Simulation finish time
-#tf = 0.025  # us (microseconds) # Simulation finish time
-#tf = 0.0025e-3  # us (microseconds) # Simulation finish time
-#tf = 2.5e-03  # us (microseconds) # Simulation finish time
-#L = 0.3  # mm # Length of the tube
 L = 0.01  # 0.10 mm = 0.01 cm # Length of the tube
+#L = 0.1  # 0.10 mm = 0.01 cm # Length of the tube
 
 # WENO (DO NOT CHANGE UNTIL INITS ARE INVARIANT)
 N = 120  # Number of discrete spatial elements
-#N = 200  # Number of discrete spatial elements
-#N = 300  # Number of discrete spatial elements
+#N = 1000  # Number of discrete spatial elements
+N = 20  # Number of discrete spatial elements
 k = 3  # number of weights Order= 2*k-1
 gc = k - 1  # number of ghost cells
 
-
 # parameters
-phi_0 = 0.65
-phi_0 = 0.75
-#u_0 = -0.1  # Initial velocity in the x-direction  # cm/us???
-u_0 = -0.00001  # Initial velocity in the x-direction  # cm/us???
-#u_0 = 1.0  # Initial velocity in the x-direction  # cm/us???
-u_0 = 0.0  # Initial velocity in the x-direction  # cm/us???
-#u_0 = -0.1  # Initial velocity in the x-direction  # cm/us???
+phi_0 = 0.75  # 0.65
+u_0 = -0.1  # Initial velocity in the x-direction  # 0.1 cm/us  = 1.0 mm/us
+u_0_1 = 0.0  #0.1  # Pellet velocity in the x-direction  # cm/us???
 
-u_0_1 = 0.0#0.1  # Pellet velocity in the x-direction  # cm/us???
-u_0_1 = 0.1#0.1  # Pellet velocity in the x-direction  # cm/us???
-u_0_1 = 0.0
-u_0_1 = 0.00001
-#u_0_1 = 1e-8  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
-#u_0_1 = 1e-1  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
-#u_0_1 = 0.0  # Pellet velocity in the x-direction  # 0.1 cm/us = 1000 m/s
 p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
 #p_0 = 10e-4#e-9  # GPa (equivalent to 1 atmosphere)
 rho_0 = 1.6  # Initial density

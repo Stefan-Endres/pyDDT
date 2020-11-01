@@ -4,14 +4,14 @@ https://scicomp.stackexchange.com/questions/20054/implementation-of-1d-advection
 """
 import numpy as np
 from numpy import *
-
+import matplotlib.pyplot as plt
 
 def ENOweights(k,r):
     #Purpose: compute weights c_rk in ENO expansion
     # v_[i+1/2] = \sum_[j=0]^[k-1] c_[rj] v_[i-r+j]
     #where k = order and r = shift
 
-    c = np.zeros(k)
+    c = zeros(k)
 
     for j in range(0,k):
             de3 = 0.
@@ -83,9 +83,12 @@ def ENO(xloc, uloc, k):
     for kk in range (0,k-1):
         #print 'S:',S
         #left stencil
-        xvec = np.zeros(k)
-        uvec = np.zeros(k)
-        Sindxl = np.append(S[0]-1, S[0:kk+1])-1
+        xvec = zeros(k)
+        print(f'xvec = {xvec}')
+        uvec = zeros(k)
+        Sindxl = append(S[0]-1, S[0:kk+1])-1
+        print(f'Sindxl = {Sindxl}')
+        print(f'xloc = {xloc}')
         xvec = xloc[Sindxl]
         uvec = uloc[Sindxl]
         DDl = nddp(xvec,uvec)
@@ -94,7 +97,7 @@ def ENO(xloc, uloc, k):
         #right stencil
         xvec = zeros(k)
         uvec = zeros(k)
-        Sindxr = np.append(S[0:kk+1], S[kk]+1)-1
+        Sindxr = append(S[0:kk+1], S[kk]+1)-1
         xvec = xloc[Sindxr]
         uvec = uloc[Sindxr]
         DDr = nddp(xvec,uvec)
@@ -190,15 +193,16 @@ def WENO(xloc, uloc, k):
     return (ul,ur)
 
 if __name__ == "__main__":
-    N = 81
-    dx = 2. / (N - 1)
-    x = linspace(0, 2, N)
+    nx = 81
+    dx = 2. / (nx - 1)
+    x = linspace(0, 2, nx)
     nt = 25
     dt = .02
+    print(f'd0.')
     c = 1.  # assume wavespeed of c = 1
-    u = np.zeros(N)  # numpy function ones()
-    u[:] = 2
-  #  u[int(.5 / dx): int(1 / dx + 1)] = 2  # setting u = 2 between 0.5 and 1 as per our I.C.s
+    u = zeros(nx)  # numpy function ones()
+    u[int(.5 / dx): int(
+        1 / dx + 1)] = 2  # setting u = 2 between 0.5 and 1 as per our I.C.s
     k = 3  # number of weights Order= 2*k-1
     gc = k - 1  # number of ghost cells
     # adding ghost cells
@@ -208,23 +212,62 @@ if __name__ == "__main__":
     xc = append(gcl, xc)
     uc = append(u, u[-gc:])
     uc = append(u[0:gc], uc)
+    U_rk3 = uc.copy()
 
-    gs = np.zeros((N + 2 * gc, nt))
-    flux = np.zeros(N + 2 * gc)
+    gs = zeros((nx + 2 * gc, nt))
+    flux = zeros(nx + 2 * gc)
 
+    plt.plot(x, u, '--', label='Initial')
+    t = 0
     for n in range(1, nt):
+        t += dt
         un = uc.copy()
-        for i in range(gc, N - 1 + gc):  # i=2
-            xloc = xc[i - (k - 1):i + k]  # i+k-1-(i-(k-1)-1) = 2k -1
-            uloc = uc[i - (k - 1):i + k]
-            f_left, f_right = ENO(xloc, uloc, k)
-            # f_left,f_right = WENO(xloc,uloc,k)
-            # upwind flux
+        U_rk3 = U_rk3.copy()
+        # for i in range(1,nx):
+        for i in range(2, nx):
+            xloc = xc[i - (k - 1):i + k]
+            floc = c * uc[i - (k - 1):i + k]
+            # f_left,f_right = ENO(xloc,floc,k)
+            f_left, f_right = WENO(xloc, floc, k)
+            # uc[i] = un[i]-dt/dx*(f_right-f_left)
             flux[i] = 0.5 * (c + fabs(c)) * f_left + 0.5 * (
                         c - fabs(c)) * f_right
 
-        for i in range(gc, N - gc):
+        for i in range(gc, nx - gc):
             if c > 0:
-                uc[i] = un[i] - dt / dx * (flux[i] - flux[i - 1])
+                # uc[i] = un[i]-dt/dx*(flux[i]-flux[i-1])
+                uc[i] = uc[i] - dt / dx * (flux[i] - flux[i - 1])
+                if 0:  # Identical to Euler
+                    U = uc
+                    U_1 = U + dt / dx * (flux[i] - flux[i - 1])
+                    U_2 = 3 / 4.0 * U + 1 / 4.0 * U_1 + 1 / 4.0 * dt / dx * (flux[i] - flux[i - 1])
+                    U = 1 / 3.0 * U + 2 / 3.0 * U_2 + 2 / 3.0 * dt  / dx * (flux[i] - flux[i - 1])
+                else:  # RK3 note change last term to negative
+                        # NOTE: TECHNICALLY NOT RK3 SINCE FLUXES ARE USING U_1
+                        #       VALS
+                    # U = uc.copy
+                    U = U_rk3.copy()
+                    U_1 = U[i] - dt / dx * (flux[i] - flux[i - 1])
+                    U_2 = 3 / 4.0 * U[i] + 1 / 4.0 * U_1 - 1 / 4.0 * dt / dx * (
+                                flux[i] - flux[i - 1])
+                    U[i] = 1 / 3.0 * U[
+                        i] + 2 / 3.0 * U_2 - 2 / 3.0 * dt / dx * (
+                                       flux[i] - flux[i - 1])
+                    U_rk3 = U.copy()
             else:
-                uc[i] = un[i] - dt / dx * (flux[i + 1] - flux[i])
+                # uc[i] = un[i]-dt/dx*(flux[i+1]-flux[i])
+                uc[i] = uc[i] - dt / dx * (flux[i + 1] - flux[i])
+
+    if 0:  # old
+        for n in range(1, nt):
+            un = u.copy()
+            for i in range(1, nx):
+                u[i] = un[i] - c * dt / dx * (un[i] - un[i - 1])
+
+    print(f'tf = {t}')
+    plt.plot(x, u, '--', label='Step')
+    # plt.plot(x, uc, '--')
+    plt.plot(xc, uc, '--', label='Euler')
+    plt.plot(xc, U, '-.', label='RK3')
+    plt.legend()
+    plt.show()
