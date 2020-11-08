@@ -4,11 +4,10 @@ from progress.bar import IncrementalBar
 
 
 class WRKR():
-    def __init__(self, f, s, bc=None, N=81, x0=0.0, xf=2.0, t0=0.0, tf=0.5, dt=None, dim=1,
+    def __init__(self, f, s, N=81, x0=0.0, xf=2.0, t0=0.0, tf=0.5, dt=None, dim=1,
                  k=3):
         self.f = f  # Vector function f
         self.s = s  # Vector function s
-        self.bc = bc  # Boundary condition function for ghost cells
         # k number of weights Order= 2*k-1
         # Domain
         self.dim = dim
@@ -55,10 +54,6 @@ class WRKR():
         dFdt = np.zeros_like(F)
         F_left = np.zeros_like(F)
         F_right = np.zeros_like(F)
-
-        # Lax-Friedrichs splitting
-        Alpha = C
-
         for ind, f in enumerate(F):
             alpha = max(np.abs(F[ind]) + C[ind])
             #for i in range(self.gc, self.N - 1 + self.gc + 1):
@@ -131,31 +126,6 @@ class WRKR():
 
         return dFdt
 
-    def Alpha(self, U, F):
-        """
-        Compute Alpha values for Lax-Friedrich splitting
-        :param U:
-        :param F:
-        :return:
-        """
-        Alpha = np.zeros(self.dim)
-        for ind, FI in enumerate(F):
-            #print(f'U[ind] = {U[ind]}')
-            #print(f'U[ind, :-1] = {U[ind, :-1]}')
-            #print(f'U[ind, 1:] = {U[ind, 1:]}')
-            dU = U[ind, 1:] - U[ind, :-1]
-            dF = F[ind, 1:] - F[ind, :-1]
-            #print(f'dU = {dU}')
-            #print(f'dF = {dF}')
-            #print(f'dU/dF = {dU/dF}')
-            Alpha[ind] = np.max(np.abs(dU/(dF + 1e-8)))
-            #for u, f in zip(U[ind], F[ind]):
-            #    dudf =
-            #    print(u)
-            #    print(f)
-       # print(f'Alpha = {Alpha}')
-        return Alpha
-
     def rk3(self, U_0):
         # TVD RK 3 solver
         U = np.atleast_2d(U_0.copy())
@@ -176,10 +146,6 @@ class WRKR():
             # Compute U_1
             F, pp = self.f(U)
             S, C = self.s(U, F, pp)
-
-            # Lax-Friedrich's splitting
-            A = self.Alpha(self, U, F)
-
             dFdt = self.dFdt(F, C)
             dLdt = S - dFdt
             #print(f'dLdt = {dLdt}')
@@ -221,29 +187,9 @@ class WRKR():
             # if c > 0:
             #   uc[i] = uc[i] - dt / dx * (flux[i] - flux[i - 1])
             # Compute new U_t+1
-            U = self.bc(U)
             F, pp = self.f(U)
             S, C = self.s(U, F, pp)
-
-            # Lax-Friedrich's splitting
-            A = self.Alpha(U, F)
-            Fp = np.zeros_like(F)
-            Fn = np.zeros_like(F)
-            for ind, FI in enumerate(F):
-                Fp[ind] = 0.5*(F[ind] + A[ind]*U[ind])
-                Fn[ind] = 0.5*(F[ind] - A[ind]*U[ind])
-
-            #print(f'Fp = {Fp}')
-            #print(f'Fn = {Fn}')
-            #dFdt = self.dFdt(F, C)
-            dFpdt = self.dFdt(Fp, C)
-
-            Fn_flipped = np.flip(Fn, axis=0)
-            dFndt = self.dFdt(Fn_flipped, C)
-            dFndt = np.flip(dFndt, axis=0)
-            
-            dFdt = dFpdt + dFndt
-            #print(f'dFdt = {dFdt}')
+            dFdt = self.dFdt(F, C)
             dLdt = S - dFdt
             #U = U + self.dt * self.dUdt(U)
             U = U + self.dt * dLdt

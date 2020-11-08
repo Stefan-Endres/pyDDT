@@ -40,7 +40,6 @@ def s(U, F, pp):
     return S, C
 
 
-
 if __name__ == "__main__":
     # Domain
     N = 120  # Number of discrete spatial elements

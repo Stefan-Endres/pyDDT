@@ -1,7 +1,7 @@
 """The wide ranging equation of state (WR-EOS)"""
 #from ddt import *
 import numpy as np
-from scipy import optimize
+from scipy import optimize, integrate
 from params import *
 
 """WR-EOS"""
@@ -9,10 +9,10 @@ def e(p, v, lambd, phi):
     """
     A combination of Equations 16 and 17
     :param p: pressure
-    :param v: specific volume
+    :param v: specific volume (cm3 g-1)
     :param lambd: Reaction progression \in [0, 1]
     :param phi: Porosity
-    :return:
+    :return: e (kJ g-1  ?)
     """
     # First compute the volumes (Equation 16)
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
@@ -71,18 +71,46 @@ def p_from_e(energy, v, lambd, phi):
     e = energy
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
-    #TODO: Deleate reduntant computation
-    P = phi*(gamma_p(v_p)*lambd*p_s_p(v_p)*v_r
-             - gamma_r(v_r)*lambd*p_s_r(v_r)*v_p
-             + gamma_r(v_r)*p_s_r(v_r)*v_p
-             + e*v_p*v_r
-             - e_s_p(v_p)*lambd*v_p*v_r
-             + e_s_r(v_r)*lambd*v_p*v_r
-             - e_s_r(v_r)*v_p*v_r
-             )/(
-            gamma_p(v_p)*lambd*phi*v_r
-            - gamma_r(v_r)*lambd*v_p
-            + gamma_r(v_r)*v_p)
+    if 0:
+        #TODO: Deleate reduntant computation
+        P = phi*(gamma_p(v_p)*lambd*p_s_p(v_p)*v_r
+                 - gamma_r(v_r)*lambd*p_s_r(v_r)*v_p
+                 + gamma_r(v_r)*p_s_r(v_r)*v_p
+                 + e*v_p*v_r
+                 - e_s_p(v_p)*lambd*v_p*v_r
+                 + e_s_r(v_r)*lambd*v_p*v_r
+                 - e_s_r(v_r)*v_p*v_r
+                 )/(
+                gamma_p(v_p)*lambd*phi*v_r
+                - gamma_r(v_r)*lambd*v_p
+                + gamma_r(v_r)*v_p)
+
+    P = phi*(gamma_p(v_p)*gamma_r(v_r)*e
+             - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd
+             + gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)*lambd
+             - gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)
+             - gamma_p(v_p)*lambd*p_s_r(v_r)*v_r
+             + gamma_p(v_p)*p_s_r(v_r)*v_r
+             + gamma_r(v_r)*lambd*p_s_p(v_p)*v_p)/(-gamma_p(v_p)*lambd*v_r
+                                                   + gamma_p(v_p)*v_r
+                                                   + gamma_r(v_r)*lambd*phi*v_p)
+    return P
+
+def p_from_e_no_reaction(energy, v, phi, lambd=0):
+    """
+    Compute the pressure, given energy, volume and phi, lambd=0
+    :param energy: energy
+    :param v: specific volume
+    :param lambd: reaction progress, must be 0.0
+    :param phi: porosity
+    :param guess: Initial guess for p and v
+    :return: p, v  # pressure and volume
+    """
+    e = energy
+    #v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
+
+    v_r = phi * v
+
 
     P = phi*(gamma_p(v_p)*gamma_r(v_r)*e
              - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd
@@ -203,7 +231,7 @@ def p_s_r(v):
     return p_hat * (sigma_j
                     + C * ((4*B*y(v))**4) / 24.0 # np.math.factorial(4) = 24
                     + (y(v)**2) / (1 - y(v))**4
-                    )
+                    ) #* 1e-2
 
 
 def y(v):
@@ -223,7 +251,7 @@ def p_s_r_y(y):
     return p_hat * (sigma_j
                     + C * ((4*B*y)**4) / 24.0  # np.math.factorial(4) = 24
                     + (y**2) / (1 - y)**4
-                    )
+                    ) #*1e-2
 
 
 def e_s_r(v):
@@ -232,7 +260,7 @@ def e_s_r(v):
     :param v: specific volume
     :return:
     """
-    from scipy import integrate
+
     if v >= v_0:
         print(f"WARNING: v[={v}] >= v_0[={v_0}]")
     y_lim = y(v)
@@ -280,6 +308,7 @@ if __name__ == '__main__':
     print(e(p_0, 0.5, 0.5, 1))
     print(e(p_0, 0.5, 0.5, 0.5))
     """
+
     print('='*100)
     #print('e_0 should be 3.983295207817231')  # before fixing gamma_r
     #print('e_0 should be 4.573901456496666')
@@ -290,10 +319,19 @@ if __name__ == '__main__':
     p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
     lambd_0 = 0.0
     e_0_test = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
-    print(f'e_0_test out = {e_0}')  #TODO: Build a test suite
+    #print(f'e_0_test out = {e_0}')  #TODO: Build a test suite
+    print(f'e_0_test out = {e_0_test}')  #TODO: Build a test suite
     print(f'Test p_from_e')
     print(f'P should be 1.0e-9 ')
     P = p_from_e(e_0_test, v_0, lambd_0, phi_0)
     print(f'P out = {P}')
+    #P_p = p_p(e_0_test, v_0*phi_0*0.01)
+    P_p = p_p(e_0_test, v_0)
+    print(f'P_p out = {P_p}')
     print('='*100)
+    print(f'New test e should be ?:')
+    e_out = e(P, v_0, lambd_0, phi_0)
+    print(f'e from new P out = {e_out}')
+    print('='*100)
+
 
