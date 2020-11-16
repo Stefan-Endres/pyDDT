@@ -84,11 +84,11 @@ def ENO(xloc, uloc, k):
         #print 'S:',S
         #left stencil
         xvec = zeros(k)
-        print(f'xvec = {xvec}')
+        #print(f'xvec = {xvec}')
         uvec = zeros(k)
         Sindxl = append(S[0]-1, S[0:kk+1])-1
-        print(f'Sindxl = {Sindxl}')
-        print(f'xloc = {xloc}')
+        #print(f'Sindxl = {Sindxl}')
+        #print(f'xloc = {xloc}')
         xvec = xloc[Sindxl]
         uvec = uloc[Sindxl]
         DDl = nddp(xvec,uvec)
@@ -111,7 +111,8 @@ def ENO(xloc, uloc, k):
             S[0:kk+2] = Sindxr+1
 
     #Compute stencil shift 'r'
-    r = k - S[0]
+    r = k - S[0]  # = 0?
+    # r = 0
 
     #Compute weights for stencil
     cr = ENOweights(k,r)
@@ -225,8 +226,13 @@ if __name__ == "__main__":
         U_rk3 = U_rk3.copy()
         # for i in range(1,nx):
         for i in range(2, nx):
-            xloc = xc[i - (k - 1):i + k]
+            xloc =     xc[i - (k - 1):i + k]
             floc = c * uc[i - (k - 1):i + k]
+
+            # k = 3 (always)
+            # i = 2:
+            # [i - (k - 1):i + k] = [0:5]
+
             # f_left,f_right = ENO(xloc,floc,k)
             f_left, f_right = WENO(xloc, floc, k)
             # uc[i] = un[i]-dt/dx*(f_right-f_left)

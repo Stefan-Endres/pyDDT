@@ -8,7 +8,8 @@ t0 = 0.0  # us (microseconds) # Simulation start time
 #tf = 0.0025  # us (microseconds) # Simulation finish time
 tf = 0.025  # us (microseconds) # Simulation finish time
 tf = 0.001  # us (microseconds) # Simulation finish time
-tf = 0.01  # us (microseconds) # Simulation finish time
+tf = 0.025  # us (microseconds) # Simulation finish time
+tf = 0.0005  # us (microseconds) # Simulation finish time
 #tf = 0.0004  # us (microseconds) # Simulation finish time
 #tf = 0.005#25  # us (microseconds) # Simulation finish time
 L = 0.01  # cm (0.10 mm = 0.01 cm) # Length of the tube
@@ -18,7 +19,7 @@ L = 0.01  # cm (0.10 mm = 0.01 cm) # Length of the tube
 N = 120  # Number of discrete spatial elements
 #N = 1000  # Number of discrete spatial elements
 N = 100  # Number of discrete spatial elements
-N = 20  # Number of discrete spatial elements
+N = 80  # Number of discrete spatial elements
 #N = 10  # Number of discrete spatial elements
 k = 3  # number of weights Order= 2*k-1
 gc = k - 1  # number of ghost cells

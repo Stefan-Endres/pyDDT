@@ -4,11 +4,14 @@ from progress.bar import IncrementalBar
 
 
 class WRKR():
-    def __init__(self, f, s, bc=None, N=81, x0=0.0, xf=2.0, t0=0.0, tf=0.5, dt=None, dim=1,
+    def __init__(self, f, s, bc=None, flux_bc=None,
+                 N=81, x0=0.0, xf=2.0, t0=0.0, tf=0.5,
+                 dt=None, dim=1,
                  k=3):
         self.f = f  # Vector function f
         self.s = s  # Vector function s
-        self.bc = bc  # Boundary condition function for ghost cells
+        self.bc = bc  # Dirichlet boundary condition u function for ghost cells
+        self.flux_bc = flux_bc  # Neumann boundary condition function for ghost cells
         # k number of weights Order= 2*k-1
         # Domain
         self.dim = dim
@@ -18,8 +21,10 @@ class WRKR():
         # Time domain
         # Simulation
         if dt == None:
-                self.dt = (self.dx) ** (5 / 4.0) #* 0.1
-                #sself.dt = 0.05 * (self.dx) ** (5 / 3.0) #* 0.1
+                #self.dt =  (self.dx) ** (5 / 4.0) #* 0.1
+                # self.dt = 0.5* (self.dx) ** (5 / 4.0) #* 0.1
+                #self.dt = 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+                self.dt = 0.05 * (self.dx) ** (5 / 3.0) #* 0.1
         else:
             self.dt = dt
 
@@ -49,87 +54,150 @@ class WRKR():
         print(f'self.xc = {self.xc}')
         print(f'self.xc.shape = {self.xc.shape}')
 
-    def dFdt(self, F, C):
+
+
+    def dFdx(self, F, C, WENO=True):
+        """
+        Computes the numerical flux values 1/dx()
+
+        The WENO M/Z method from Peng et. al. (2019)
+        :param F:
+        :param C:
+        :param WENO: If WENO is False, compute ENO scheme
+        :return:
+        """
+        # Solver: parameters
+        ep = 1e-6  # parameter to avoid division by zero
+        q = 1#2  # q power parameter?
+        #q = 3  # q power parameter?
+
+        dFdx = np.zeros_like(F)
+        if 0:
+            print(f'F = {F}')
+            print(f'F[:, :-4] = {F[:, :-4]}')
+            print(f'F[:, 1:-3] = {F[:, 1:-3]}')
+            print(f'F[:, 2:-2] = {F[:, 2:-2]}')
+            print(f'F[:, 3:-1] = {F[:, 3:-1]}')
+            print(f'F[:, 4:] = {F[:, 4:]}')
+
+        fi_n2 = F[:, :-4]  # f_{i - 2}   (this is u_{i - 2} in the article)
+        fi_n1 = F[:, 1:-3]  # f_{i - 1}
+        f_i = F[:, 2:-2]  # f_{i}
+        fi_p1 = F[:, 3:-1]  # f_{i + 1}
+        fi_p2 = F[:, 4:]  # f_{i + 2}
+        # f_{0, i + 1/2}
+        f_0_i_p1_2 = (1/3.0)*fi_n2 - (7/6.0)*fi_n1 + (11/6.0)*f_i
+        # f_{1, i + 1/2}
+        f_1_i_p1_2 = -(1/6.0)*fi_n1 + (5/6.0)*f_i + (1/3.0)*fi_p1
+        # f_{2, i + 1/2}
+        f_2_i_p1_2 = (1/3.0)*f_i + (5/6.0)*fi_p1 - (1/6.0)*fi_p2
+
+        ########################################################################
+        ## Linear ENO:
+        # Linear weights)
+        c_0 = 0.1
+        c_1 = 0.6
+        c_2 = 0.3
+        if not WENO:
+            # f_{i + 1/2}  (Linear ENO)
+            f_i_p1_2 = c_0 * f_0_i_p1_2 + c_1 * f_1_i_p1_2 + c_2 * f_2_i_p1_2
+        ########################################################################
+        else:
+            # Smoothness indicators:
+            beta_0 = (13/12.0)*(fi_n2 - 2*fi_n1 + f_i)**2 \
+                     + (1/4.0)*(fi_n2 - 4*fi_n1 + 3*f_i)**2
+            beta_1 = (13/12.0)*(fi_n1 - 2*f_i + fi_p1)**2 \
+                     + (1/4.0)*(fi_n1 - fi_p1)**2
+            beta_2 = (13/12.0)*(f_i - 2*fi_p1 + fi_p2)**2 \
+                     + (1/4.0)*(3*f_i - 4*fi_p1 + fi_p2)**2
+
+            # 5th order WENO Z scheme
+            if 1:
+                # Borges et al. parameter:
+                tau_5 = np.abs(beta_0 - beta_2)
+
+                alpha_0 = c_0*(1 + (tau_5/(beta_0 + ep))**q)
+                alpha_1 = c_1*(1 + (tau_5/(beta_1 + ep))**q)
+                alpha_2 = c_2*(1 + (tau_5/(beta_2 + ep))**q)
+            # 5th order WENO-M:
+            elif 0:
+                alpha_0 = c_0/(beta_0 + ep)**q
+                alpha_1 = c_1/(beta_1 + ep)**q
+                alpha_2 = c_2/(beta_2 + ep)**q
+
+            sigma_alpha = alpha_0 + alpha_1 + alpha_2
+            omega_0 = alpha_0/sigma_alpha
+            omega_1 = alpha_1/sigma_alpha
+            omega_2 = alpha_2/sigma_alpha
+            f_i_p1_2 = omega_0*f_0_i_p1_2 + omega_1*f_1_i_p1_2 + omega_2*f_2_i_p1_2
+        ########################################################################
+        # Numerical flux = f_i = f_{i + 1/2} - f_{i - 1/2}
+        #print(f'f_i_p1_2.shape = {f_i_p1_2.shape}')
+        self.flux = np.zeros_like(F[:, 2:-2])
+        self.flux[:, 1:] = f_i_p1_2[:, 1:] - f_i_p1_2[:, 0:-1]
+        # TODO: What do we do with the cell value at i = 0??? It is not possible
+        #       to calculate a F_{i-1/2} value, Equation 12 works for f_{i+1/2}
+        #       but we need f_{i-2}, f_{i-1}, f_{i}, F_{i+1}, F_{i+2}.
+        #       so at i = -1: f_{i+1/2} = f_{-1/2} we step a f_{i-2} = f_{-3}
+        #       value. For now we set it to zero (and modify in BC):
+        #self.flux[:, 0] = np.zeros_like(F[:, 0])
+        # Set all rows and all columns (excluding ghost cells) to flux
+
+
+        dFdx[:, 2:-2] = self.flux/self.dx
+
+        # Use "outflow" boundary conditions proposed in:
+        # http://physics.princeton.edu/~fpretori/Burgers/Boundary.html
+        #print(f'dFdx = {dFdx}')
+        #print(f'self.xc = {self.xc}')
+        if 1:
+            for i_gc in range(self.gc):
+                dFdx[:, i_gc] = dFdx[:, self.gc + 1]
+                dFdx[:, -(i_gc+1)] = dFdx[:, -(self.gc + 1)]
+
+        # use second order BC fit
+        if 0:
+            #print(f'self.xc[self.gc + 1:self.gc + 3] = {self.xc[self.gc + 1:self.gc + 4]}')
+            #print(f'dFdx[:, self.gc + 1:self.gc + 3] = {dFdx[:, self.gc + 1:self.gc + 4]}')
+            for ind in range(self.dim):
+                z = np.polyfit(self.xc[self.gc + 1:self.gc + 4],
+                               dFdx[ind, self.gc + 1:self.gc + 4], 2)
+                p = np.poly1d(z)
+                dFdx[ind, 0:self.gc] = p(self.xc[0:self.gc])
+
+                #z = np.polyfit(self.xc[self.gc+:self.gc + 4],
+               #                dFdx[ind, self.gc + 1:self.gc + 4], 2)
+                #p = np.poly1d(z)
+
+        # set i=0 to i=1 (no flux at i=0, see above)
+        dFdx[:, self.gc] = dFdx[:, self.gc + 1]
+        #print(f'dFdx = {dFdx}')
+        return dFdx
+
+    def dFdx_old(self, F, C):
         # Solve U
         # Iterate over rows:
-        dFdt = np.zeros_like(F)
-        F_left = np.zeros_like(F)
-        F_right = np.zeros_like(F)
-
-        # Lax-Friedrichs splitting
-        Alpha = C
-
+        dFdx = np.zeros_like(F)
         for ind, f in enumerate(F):
-            alpha = max(np.abs(F[ind]) + C[ind])
-            #for i in range(self.gc, self.N - 1 + self.gc + 1):
-            for i in range(self.gc, self.N - 1 + self.gc + 1):
-            #    print('-')
-            #    print('-')
-            #    print(f'i = {i}')
-                #print(f'i - (self.k - 1) = {i - (self.k - 1)}')
-                #print(f'i + self.k = {i + self.k}')
-                #print(f'elf.xc[i - (self.k - 1):i + self.k] = {self.xc[i - (self.k - 1):i + self.k]}')
-                # x stencil?
+            for i in range(self.gc, self.N + self.gc):
                 xloc = self.xc[i - (self.k - 1):i + self.k]
-                # f(u) = c * U
-                floc = f[i - (self.k - 1):i + self.k]
+                floc =       f[i - (self.k - 1):i + self.k]
                 # Find fluxes f_left and f_right using a scheme
-                # f_left,f_right = ENO(xloc,floc,k)
+                #f_left,f_right = ENO(xloc,floc,self.k)
                 f_left, f_right = WENO(xloc, floc, self.k)
-             #   print(f'f_left = {f_left}')
-             #   print(f'f_right  = {f_right }')
-                F_left[ind, i] = f_left
-                F_right[ind, i] = f_right
+                self.flux[i] = f_right - f_left
 
-                # Compute flux, from c (TODO: Compute c)
-                # In DDT c is basically the velocity? Since the variables
-                # are multiplied as f(U) = c * U where c is the velocity in the
-                # paper
-                if 0:
-                    self.c = C[ind, i]
-                    self.flux[i] = 0.5*(self.c + np.fabs(self.c)) * f_left \
-                                 + 0.5*(self.c - np.fabs(self.c)) * f_right
-                elif 1:
-                    #self.flux[i] = f_left - f_right
-                    self.flux[i] = f_right - f_left
-                    # self.flux[i] = 0.5*f_right + 0.5*f_left
-                    #self.flux[i] = f_right + f_left
-                    #self.flux[i] = f_right
-                    #self.flux[i] = f_left
-                    #print(f'self.flux[i] = {self.flux[i]}')
-                    #f_plus = 0.5*(F[ind, i] + alpha * U[ind, i])
-                    #f_neg = 0.5*(F[ind, i] - alpha * U[ind, i])
-                    #if f_left - f_right >= 0:
-                   #     self.flux[i] = f_left - f_right
-                    #else:
-                    #    self.flux[i] = f_right - f_left
-                elif 0:
-                    ap = max(C[ind, i], 0)
-                    an = min(C[ind, i], 0)
-                    self.flux[i] = ap * f_right + an * f_left
-                elif 0:
-                    self.flux[i] = f_right + f_left
-
-            for i in range(self.gc, self.N - 1 + self.gc + 1):
-                if 0:
-                    dFdt[ind, i] = (self.flux[i] - self.flux[i - 1]) / self.dx
-                    if i == (self.gc):
-                        dFdt[ind, i] = (self.flux[i+1] - self.flux[i]) / self.dx
-                elif 1:
-                    dFdt[ind, i] = (self.flux[i]) / self.dx
-                elif 0:
-                    if (self.flux[i] - self.flux[i - 1]) > 0:
-                        dFdt[ind, i] = (self.flux[i] - self.flux[i - 1]) / self.dx
-                    else:
-                        dFdt[ind, i] = (self.flux[i + 1] - self.flux[i]) / self.dx
+            #for i in range(self.gc, self.N - 1 + self.gc + 1):
+            for i in range(self.gc, self.N + self.gc + 1):
+            #for i in range(0, self.N + self.gc + 1):
+                dFdx[ind, i] = self.flux[i]#/self.dx
+        #print(f'self.flux = {self.flux}')
         if 0:
             print('=' * 30)
-            print('=' * 30)
-            print(f'dFdt = {dFdt}')
-            print('=' * 30)
+            print(f'dFdx = {dFdx}')
             print('=' * 30)
 
-        return dFdt
+        return dFdx
 
     def Alpha(self, U, F):
         """
@@ -139,22 +207,135 @@ class WRKR():
         :return:
         """
         Alpha = np.zeros(self.dim)
+
+        if 0:
+            for ind, FI in enumerate(F):
+                # print(f'U[ind] = {U[ind]}')
+                # print(f'U[ind, :-1] = {U[ind, :-1]}')
+                # print(f'U[ind, 1:] = {U[ind, 1:]}')
+                # TODO: Should exclude ghost cells?
+                dF = F[ind, 1:] - F[ind, :-1]
+                dx = self.dx
+
+                dFdX = dF / self.dx
+                #  print(f'dFdU = {dFdU}')
+                dFdX = np.nan_to_num(dFdX)
+                Alpha[ind] = np.max(np.abs(dFdX))
+
+                # Alpha[ind] = np.max(np.abs((dF + ep) / (dU + ep)))  # + 1.4
+            # Alpha[ind] = np.max(np.abs(U[ind]))  # + 1.4
+
+            # for u, f in zip(U[ind], F[ind]):
+            #    dudf =
+            #    print(u)
+            #    print(f)
+            #print(f'Alpha = {Alpha}')
+            return Alpha
+
+        ep = 1e-1  # 1.0#0.0#1e-6
+        #ep = 5  # 1.0#0.0#1e-6
+
         for ind, FI in enumerate(F):
-            #print(f'U[ind] = {U[ind]}')
-            #print(f'U[ind, :-1] = {U[ind, :-1]}')
-            #print(f'U[ind, 1:] = {U[ind, 1:]}')
-            dU = U[ind, 1:] - U[ind, :-1]
-            dF = F[ind, 1:] - F[ind, :-1]
-            #print(f'dU = {dU}')
-            #print(f'dF = {dF}')
-            #print(f'dU/dF = {dU/dF}')
-            Alpha[ind] = np.max(np.abs(dU/(dF + 1e-8)))
+            if 0:
+                #print(f'U[ind] = {U[ind]}')
+                #print(f'U[ind, :-1] = {U[ind, :-1]}')
+                #print(f'U[ind, 1:] = {U[ind, 1:]}')
+                #TODO: Should exclude ghost cells?
+                dF = F[ind, 1:] - F[ind, :-1]
+                dU = U[ind, 1:] - U[ind, :-1]
+
+                #print(f'dU = {dU}')
+                #print(f'dF = {dF}')
+                #print(f'dU/dF = {dU/dF}')
+
+                #Alpha[ind] = np.max(np.abs((dU + ep) / (dF + ep)))  # + 1.4
+             #   print(f'dU = {dU}')
+             #   print(f'dF = {dF}')
+                #dUdF = dU/dF
+                #dUdF = dU/dF
+                #dUdF = np.nan_to_num(dUdF)
+                #Alpha[ind] = np.max(np.abs(dUdF))
+                #dFdU = dF/dU
+              #  dFdU = (dF + ep)/(dU + ep)
+                #dFdU = (dF)/(dU)
+                dFdU = (dF)/(self.dx)
+                #print(f'dFdU = {dFdU}')
+                dFdU = np.nan_to_num(dFdU)
+               # print(f'dFdU = {dFdU}')
+                Alpha[ind] = np.max(np.abs(dFdU))
+
+            # Value from Peng (2019)
+            if 1:
+
+                gamma = 1.4
+                rho = U[0]
+                #print(f'rho  {rho}')
+                u = U[1] / U[0]  # rho * u / rho
+                # u = np.divide(U[1], U[0])  # rho * u / rho
+                E = U[2]
+                #print(f'u = {u}')
+                p = (E - 0.5 * rho * (u ** 2)) * (gamma - 1)
+                #print(f'E = {E}')
+                #print(f'p = {p}')
+                c = np.sqrt(gamma*p/rho)  # Speed of sound c
+                Alpha[ind] = np.max(np.abs(U) + c)
+                Alpha[ind] = np.nan_to_num(Alpha[ind])
+
+            if 0:
+                dFdU = np.gradient(dF, dU#, dtype=float
+                                   )
+                print(f'dFdU = {dFdU}')
+                Alpha[ind] = np.max(np.abs(dFdU))
+
+            #Alpha[ind] = np.max(np.abs((dF + ep) / (dU + ep)))  # + 1.4
+           # Alpha[ind] = np.max(np.abs(U[ind]))  # + 1.4
+
             #for u, f in zip(U[ind], F[ind]):
             #    dudf =
             #    print(u)
             #    print(f)
-       # print(f'Alpha = {Alpha}')
+        #print(f'Alpha = {Alpha}')
         return Alpha
+
+    def dLdt(self, U):
+        if self.bc is None:
+            pass
+        else:
+            #U = self.bc(U)  # Apply boundary conditions
+            U = self.bc(U, self.x, self.t)  # Apply boundary conditions
+            #print(f't_c = {t_c}')
+
+        F, pp = self.f(U)
+        S, C = self.s(U, F, pp)
+
+        # Lax-Friedrich's splitting
+        A = self.Alpha(U, F)
+        Fp = np.zeros_like(F)
+        Fn = np.zeros_like(F)
+        for ind, FI in enumerate(F):
+            #print(f'A[ind] = {A[ind]}')
+            Fp[ind] = 0.5 * (F[ind] + A[ind] * U[ind])
+            Fn[ind] = 0.5 * (F[ind] - A[ind] * U[ind])
+
+        if 0:
+            print(f'F = {F}')
+            print(f'A = {A}')
+            print(f'Fp = {Fp}')
+            print(f'Fn = {Fn}')
+
+        dFpdx = self.dFdx(Fp, C)
+        Fn_flipped = np.flip(Fn, axis=1)
+        #dFndx = self.dFdx(-Fn_flipped, C)
+        dFndx = self.dFdx(Fn_flipped, C)
+        dFndx = -np.flip(dFndx, axis=1)
+        #dFndx = np.flip(dFndx, axis=1)
+        #print(f'dFndt = {dFndt}')
+        #print(f'dFpdt = {dFpdt}')
+        if 0:
+            dFndx = self.dFdx(Fn, C)
+        dFdx = (dFpdx + dFndx)
+        dFdx = dFdx
+        return S - dFdx
 
     def rk3(self, U_0):
         # TVD RK 3 solver
@@ -168,45 +349,44 @@ class WRKR():
         prog_bar = IncrementalBar('Simulation progress', max=len(self.t))
 
         for t_c in self.t[1:]:
+            self.t = t_c
+            #print(f'self.t = {self.t}')
             # if c > 0:
             #   uc[i] = uc[i] - dt / dx * (flux[i] - flux[i - 1])
             # Compute new U_t+1
             Uc = U.copy()
 
             # Compute U_1
-            F, pp = self.f(U)
-            S, C = self.s(U, F, pp)
-
+           # F, pp = self.f(U)
+            #S, C = self.s(U, F, pp)
             # Lax-Friedrich's splitting
-            A = self.Alpha(self, U, F)
+            #dFdt = self.dFdt(F, C)
 
-            dFdt = self.dFdt(F, C)
-            dLdt = S - dFdt
-            #print(f'dLdt = {dLdt}')
+            dLdt = self.dLdt(U)  #dLdt = S - dFdt
             U_1 = Uc + self.dt * dLdt
             # Compute U_2
-            F, pp = self.f(U_1)
-            S, C = self.s(U_1, F, pp)
-            dFdt = self.dFdt(F, C)
-            dLdt = S - dFdt
+            dLdt = self.dLdt(U_1)
             U_2 = 3/4.0 * Uc + 1/4.0 * U_1 + 1/4.0 * self.dt * dLdt
             # Compute U
-            F, pp = self.f(U_2)
-            S, C = self.s(U_2, F, pp)
-            dFdt = self.dFdt(F, C)
-            dLdt = S - dFdt
-
+            dLdt = self.dLdt(U_2)
             U = 1/3.0 * Uc + 2/3.0 * U_2 + 2/3.0 * self.dt * dLdt
 
             ind += 1
             self.U_0_sol[ind] = U
-            #else:
-            #   uc[i] = uc[i] - dt / dx * (flux[i + 1] - flux[i])
             prog_bar.next()
+
+            if 0:
+                from matplotlib import pyplot as plt
+                plt.figure(2)
+                plt.plot(2)
+                plt.plot(self.xc, U[0, :].T, 'x-',
+                         label='RK3 1 (rho)')
+                plt.legend()
+                plt.show()
+
         prog_bar.finish()
         sol = self.U_0_sol[:, :, self.gc:-(self.gc)]  # All rows, but exclude column of ghost cells
         return U, sol
-
 
     def euler(self, U_0):
         # TVD RK 3 solver
@@ -218,33 +398,13 @@ class WRKR():
         ind = 0  # solution index tracker
         prog_bar = IncrementalBar('Simulation progress', max=len(self.t))
         for t_c in self.t[1:]:
-            # if c > 0:
-            #   uc[i] = uc[i] - dt / dx * (flux[i] - flux[i - 1])
-            # Compute new U_t+1
-            U = self.bc(U)
-            F, pp = self.f(U)
-            S, C = self.s(U, F, pp)
+            self.t = t_c
+            print(f'self.t = {self.t}')
+           # U = self.bc(U)
+           # F, pp = self.f(U)
+           # S, C = self.s(U, F, pp)
 
-            # Lax-Friedrich's splitting
-            A = self.Alpha(U, F)
-            Fp = np.zeros_like(F)
-            Fn = np.zeros_like(F)
-            for ind, FI in enumerate(F):
-                Fp[ind] = 0.5*(F[ind] + A[ind]*U[ind])
-                Fn[ind] = 0.5*(F[ind] - A[ind]*U[ind])
-
-            #print(f'Fp = {Fp}')
-            #print(f'Fn = {Fn}')
-            #dFdt = self.dFdt(F, C)
-            dFpdt = self.dFdt(Fp, C)
-
-            Fn_flipped = np.flip(Fn, axis=0)
-            dFndt = self.dFdt(Fn_flipped, C)
-            dFndt = np.flip(dFndt, axis=0)
-            
-            dFdt = dFpdt + dFndt
-            #print(f'dFdt = {dFdt}')
-            dLdt = S - dFdt
+            dLdt = self.dLdt(U)
             #U = U + self.dt * self.dUdt(U)
             U = U + self.dt * dLdt
             ind += 1
@@ -252,6 +412,7 @@ class WRKR():
             #else:
             #   uc[i] = uc[i] - dt / dx * (flux[i + 1] - flux[i])
             prog_bar.next()
+
         prog_bar.finish()
         sol = self.U_0_sol[:, :, self.gc:-(self.gc)]  # All rows, but exclude column of ghost cells
         return U, sol

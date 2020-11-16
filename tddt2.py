@@ -29,11 +29,42 @@ def IC(x):
                     (1 + 0.2 * np.sin(np.pi * x) )*1,
                      E])
 
-def BC(U):
+def BC(U, x, t=None):
     # BCs?
-    for ind in range(3):  # dim=3
-        U[ind, 0:gc] = U[ind, gc]#.T
-        U[ind, 0-gc:] = U[ind, -(gc+1)]#.T
+   # return U
+    if 0:
+        #print(f'U before = {U}')
+        for ind in range(3):  # dim=3
+            U[ind, 0:gc] = U[ind, gc]#.T
+            #U[ind, 0:gc] = 0.0
+            U[ind, -gc:] = U[ind, -(gc+1)]#.T
+            #U[ind, -gc:] = 0.0
+        #print(f'U after BC = {U}')
+
+    if 1:
+        p = 1
+        rho = 1 + 0.2 * np.sin(np.pi * (x - t))
+        u = 1
+        E = p / (gamma - 1) + 0.5 * rho * u ** 2
+
+        exact = np.array([rho,
+                         rho*u,
+                         E])
+
+        #print(f'exact = {exact}')
+        #print(f'exact.shape = {exact.shape}')
+        for ind in range(3):  # dim=3
+            #print(f'exact[{ind}] = {exact[ind]}')
+            #print(f'exact[ind, 0:gc] = {exact[ind, 0:gc]}')
+            #print(f'exact[ind, -gc:] = {exact[ind, -gc:]}')
+
+            U[ind, 0:gc] = exact[ind, 0:gc]#.T
+            #U[ind, 0:gc] = 0.0
+            U[ind, -gc:] = exact[ind, -gc]#.T
+            #U[ind, -gc:] = 0.0
+
+        return U
+
     return U
 
 def f(U):
@@ -92,21 +123,34 @@ def exact(x, t):
                      [rho*u],
                      [E]])
 
-    if 0:
-        return np.array([[1 + 0.2 * np.sin( np.pi * (x - t))],
-                         [U1],
-                         [U2]])
-
 if __name__ == "__main__":
     N = 20
     N = 50
+    #N = 200
+    #N = 81
+   # N = 400
+  #  N = 400
     tf = 0.05
     tf = 0.05999
 
     tf = 2
     tf = 0.2
     tf = 0.5
-    solver = WRKR(f, s, bc=BC, N=N, x0=0.0, xf=2.0, t0=0.0,
+    #tf = 0.45
+    tf = 0.2
+    tf = 0.3
+    tf = 0.35
+    tf = 1.0
+    tf = 1.2
+    tf = 0.2
+    #tf = 0.
+    #tf = 1.0
+   # tf = 0.4
+    #tf = 2.0
+    #tf = 0.6
+   # tf = 0.06
+    solver = WRKR(f, s, #bc=BC,
+                  N=N, x0=0.0, xf=2.0, t0=0.0,
                   tf=tf, dim=3, #dt= 0.001
                   )
     # IC's
@@ -125,7 +169,7 @@ if __name__ == "__main__":
     print(f'U_0[1] = {U_0[1]}')
     print(f'U_0[2] = {U_0[2]}')
 
-  #  Urk3, solrk3 = solver.rk3(U_0)  # self.U_0_sol
+    #  Urk3, solrk3 = solver.rk3(U_0)  # self.U_0_sol
     Urk3, solrk3 = solver.euler(U_0)  # self.U_0_sol
     #Ue, sole = solver.euler(U_0)  # self.U_0_sol
     #print(f'sol = {sol}')

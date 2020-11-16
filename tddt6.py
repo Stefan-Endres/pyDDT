@@ -1,5 +1,5 @@
 """
-Peng 2019 Sod problem
+Peng 2019 Lax problem
 """
 import numpy as np
 from numpy import *
@@ -21,17 +21,17 @@ def IC(x):
     # rho * u
     for i, xi in enumerate(x):
         if xi <= 0:
-            rho = 1.0
-            u = 0.0
-            p = 1.0
+            rho = 0.445
+            u = 0.698
+            p = 3.528
             E = (p / (gamma - 1)) + 0.5 * rho * (u ** 2)
             U_0[0, i] = rho
             U_0[1, i] = rho * u
             U_0[2, i] = E
         if xi > 0.0:
-            rho = 0.125
+            rho = 0.5
             u = 0.0
-            p = 0.1
+            p = 0.571
             E = p / (gamma - 1) + 0.5 * rho * u ** 2
             U_0[0, i] = rho
             U_0[1, i] = rho * u
@@ -58,11 +58,7 @@ def f(U):
     #print(f'p = {p}')
    # print(f'rho = {rho}')
     F[0] = rho*u
-    F[0] = rho*u
     F[1] = (rho * (u**2)) + p
-    #print(f'u = {u}')
-    #print(f'E = {E}')
-   # print(f'p = {p}')
     F[2] = u * (E + p)
     pp = (rho, u, E, p)
     return F, pp
@@ -86,22 +82,20 @@ def s(U, F, pp):
 if __name__ == "__main__":
     N = 81
     N = 200
-    tf = 0.14
-    tf = 0.14
-    tf = 0.07
-    tf = 0.05
-    tf = 0.14
-    #tf = 0.0165
-    #1tf = 0.2
-    #tf = 0.06
-    #tf = 1
-    #tf = 0.3
-    #tf = 0.75
+    N = 600
+    #N = 1000
+    tf = 0.13
+    #tf = 0.045
+    #tf = 0.047
+    #tf = 0.13
     solver = WRKR(f, s, N=N,
                   #x0=-2.0,
-                  x0=-0.4,
+                  #x0=-0.5,
+                  x0=-1,
+                  #x0=-5.0,
                   #xf=2.0,
-                  xf=0.4,
+                  xf=1.0,
+                  #xf=5.0,
                   t0=0.0,
                   #tf=0.014,
                   tf=tf,
@@ -117,6 +111,7 @@ if __name__ == "__main__":
     #print(f'U_0[2] = {U_0[2]}')
 
     Urk3, solrk3 = solver.rk3(U_0)  # self.U_0_sol
+    # Urk3, solrk3 = solver.euler(U_0)  # self.U_0_sol
     # Ue, sole = solver.euler(U_0)  # self.U_0_sol
     # print(f'sol = {sol}')
     # fsol = self.U_0_sol
@@ -127,9 +122,11 @@ if __name__ == "__main__":
     if 1:
         plt.figure(1)
         plt.plot(1)
-        plt.plot(solver.xc, U_0[0, :].T, '-', label='Initial 1 (rho)')
-        plt.plot(solver.xc, U_0[1, :].T, 'x', label='Initial 2 (rho * u)')
-        plt.plot(solver.xc, U_0[2, :].T, 'o', label='Initial 3 (E)')
+        plt.plot(solver.xc, U_0[0, :].T, 'x', label='Initial 1 (rho)')
+        if 0:
+            plt.plot(solver.xc, U_0[1, :].T, 'x', label='Initial 2 (rho * u)')
+            plt.plot(solver.xc, U_0[2, :].T, 'o', label='Initial 3 (E)')
+
         plt.legend()
     # plt.show()
 
@@ -143,10 +140,11 @@ if __name__ == "__main__":
         #         label='RK3 1')
         plt.plot(solver.xc, Urk3[0, :].T, 'x-',
                  label='RK3 1 (rho)')
-        plt.plot(solver.xc, Urk3[1, :].T, 'x-',
-                 label='RK3 2 (rho * u)')
-        plt.plot(solver.xc, Urk3[2, :].T, 'x-',
-                 label='RK3 3 (E)')
+        if 0:
+            plt.plot(solver.xc, Urk3[1, :].T, '-',
+                     label='RK3 2 (rho * u)')
+            plt.plot(solver.xc, Urk3[2, :].T, '-',
+                     label='RK3 3 (E)')
         #plt.plot(solver.x, Urk3[1, solver.gc:-(solver.gc)].T, 'x',
         #         label='RK3 2')
         #plt.plot(solver.x, Urk3[2, solver.gc:-(solver.gc)].T, 'o',
