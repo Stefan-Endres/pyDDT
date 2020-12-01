@@ -15,6 +15,7 @@ N = 100  # Number of discrete spatial elements
 N = 80  # Number of discrete spatial elements
 N = 20  # Number of discrete spatial elements
 #N = 200  # Number of discrete spatial elements
+#N = 200  # Number of discrete spatial elements
 k = 3  # number of weights Order= 2*k-1
 gc = k - 1  # number of ghost cells
 #gc = 50 # number of ghost cells
@@ -27,7 +28,8 @@ u_0_1 = 0.0  # mm # Pellet velocity relative to bulk
 # 375 m/s
 
 #p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
-p_0 = p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
+p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
+#p_0 = 0.0  # mm-1 us-2  (equivalent to 1 atmosphere)
 #p_0 = 10e-4#e-9  # GPa (equivalent to 1 atmosphere)
 #rho_0 = 1.6  # Initial density g/cm3
 #rho_0 = 1.32  # g/cm3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
@@ -65,15 +67,21 @@ k_phi = 31.5*1e3  # g mm-1 us-2 us-1
 p_c = 1.5899*1e-3  # g mm-1 us-2
 p_ign = p_c  # GPa TODO: It is assumed that Table II of the paper implies this
 #p_ign = 0.1  # GPa TODO: This if from the paper Xu Stewart '97
-#p_cj = 1  # GPa TODO: Find
-#p_cj = 1.5899*1e-3  # g mm-1 us-2
-p_cj = 6.69320*1e-3  # g mm-1 us-2
+#p_cj = 1  # GPa TODO: Find0
+p_cj = 15.928*1e-3  # g mm-1 us-2
 """
 p_cj was interpolated from data for PETN (TABLE 20.1 in unknown textbook)
                         # Detonations, general observations
 for rho_0 =  1.32  g / cm3
+
+(1.32 - 1.23) * (17.3 - 13.87) / (1.38 - 1.23) + 13.87 = 15.928000000000003
+
+Detonation velocity:
 (1.32 - 1.23) * (6.91 - 6.368) / (1.38 - 1.23) + 6.368
-6.693200000000001
+6.693200000000001 km/s
+
+
+
 """
 
 """

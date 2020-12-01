@@ -35,6 +35,7 @@ def volumes(v, lambd, phi):
     v_ps_g = v  # Initial guess value for v_ps
     v_r_g = v * phi  # Initial guess value for v_r
     Phi_g = 0.95  # Initial guess value for Phi
+    #Phi_g = 0.5  # Initial guess value for Phi
     v_p_g = Phi_g * v_ps_g  # Initial guess value for v_p
     #TODO: Update routine to use previous values in the element as guess
     x0 = [v_p_g, v_ps_g, v_r_g, Phi_g]

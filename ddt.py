@@ -37,6 +37,7 @@ def r_phi(p, phi):  # units validated
                                      )
                     )
     rate_phi = np.nan_to_num(rate_phi)
+
     return rate_phi
 
 # Reaction rate
@@ -50,6 +51,16 @@ def r_lambda(p, lambd):  # units validated
     #print(f'np.heaviside(p - p_ign, 1) = {np.heaviside(p - p_ign, 1)}')
     #return 0.0
     rate_lambda = np.heaviside(p - p_ign, 1) * k * (p/p_cj)**mu * (1 - lambd)**upsilon
+
+    if 0:
+        print(f'rate_lambda = {rate_lambda}')
+        print(f'np.heaviside(p - p_ign, 1)= {np.heaviside(p - p_ign, 1)}')
+        print(f'k = {k}')
+        print(f'p = {p}')
+        print(f'p_cj = {p_cj}')
+        print(f'mu = {mu}')
+        print(f'(p/p_cj)**mu = {(p/p_cj)**mu}')
+        print(f'(1 - lambd)**upsilon= {(1 - lambd)**upsilon}')
     rate_lambda = np.nan_to_num(rate_lambda)  #TODO: SHOULDN'T NEED THIS!!!
     return rate_lambda
 
@@ -220,7 +231,8 @@ def f(U):
         #P[ind] = p_from_e_no_reaction(E[ind]*1e2, V[ind], PHI[ind])
     # print(f'P = {P}')
 
-
+    #TODO: SHOULD NOT BE NEEDED:
+    P = np.maximum(P, np.zeros_like(P))
     #P = 0.01 * P  # Units: Convert pressure back to g cm-1 us-2
     #P = 0.1 * P # Units: Convert pressure back to g mm-1 us-2
 
@@ -287,6 +299,101 @@ def s(U, F, pp):
 
     #print(f'S = {S}')
     return S, C
+
+# Boundary condition
+def BC(U, x, t=None):
+    # BCs?
+   # return U
+    if 1:
+        #print(f'U before = {U}')
+        for ind in range(3):  # dim=3
+            U[ind, 0:gc] = U[ind, gc]#.T
+            #U[ind, 0:gc] = U[ind, (gc + 1)]#.T
+            #U[ind, 0:gc] = 0.0
+            U[ind, -gc:] = U[ind, -(gc+1)]#.T
+            #U[ind, -gc:] = 0.0
+        #print(f'U after BC = {U}')
+
+    # Exact boundary conditions
+    if 0:
+        p = 1
+        rho = 1 + 0.2 * np.sin(np.pi * (x - t))
+        u = 1
+        E = p / (gamma - 1) + 0.5 * rho * u ** 2
+
+        exact = np.array([rho,
+                         rho*u,
+                         E])
+
+        #print(f'exact = {exact}')
+        #print(f'exact.shape = {exact.shape}')
+        for ind in range(3):  # dim=3
+            #print(f'exact[{ind}] = {exact[ind]}')
+            #print(f'exact[ind, 0:gc] = {exact[ind, 0:gc]}')
+            #print(f'exact[ind, -gc:] = {exact[ind, -gc:]}')
+
+            U[ind, 0:gc] = exact[ind, 0:gc]#.T
+            #U[ind, 0:gc] = 0.0
+            U[ind, -gc:] = exact[ind, -gc:]#.T
+            #U[ind, -gc:] = 0.0
+        #print(f'U in BC = {U}')
+        return U
+
+    # Periodic boundary conditions
+    if 0:
+        for ind in range(3):
+            #print(f'U[ind, {(N-(gc + 1))}:{N}] = {U[ind, (N-(gc + 1)):N]}')
+            U[ind, 0:(gc + 1)] = U[ind, (N-(gc + 1)):N]
+            #print(f'U[ind, {gc}:{(gc + gc + 1)}] = {U[ind, -gc:(gc + gc + 1)]}')
+            U[ind, -(gc + 1):] = U[ind, gc:(gc + gc + 1)]  # .T
+
+    return U
+
+def BC_flux(dFdx, xc, gc, t=None):
+    # Use "outflow" boundary conditions proposed in:
+    # http://physics.princeton.edu/~fpretori/Burgers/Boundary.html
+    # print(f'dFdx = {dFdx}')
+    # print(f'self.xc = {self.xc}')
+
+    if 0:
+        for i_gc in range(gc):
+            dFdx[:, i_gc] = dFdx[:, gc + 1]
+            # dFdx[:, i_gc-1] = dFdx[:, self.gc+1]
+            dFdx[:, -(i_gc + 1)] = dFdx[:, -(gc + 1)]
+
+    # use second order BC fit
+    if 0:
+        # print(f'self.xc[self.gc + 1:self.gc + 3] = {self.xc[self.gc + 1:self.gc + 4]}')
+        # print(f'dFdx[:, self.gc + 1:self.gc + 3] = {dFdx[:, self.gc + 1:self.gc + 4]}')
+
+        cells = 2  # cells to extrapolate
+        for ind in range(3):
+            #print('-')
+            #print(f'c[gc:gc + 2] = {xc[gc:gc + cells]}')
+            #print(f'dFdx[ind, gc:gc + 2] = {dFdx[ind, gc:gc + cells]}')
+
+            #print('-')
+            z = np.polyfit(xc[gc:gc + cells],
+                           dFdx[ind, gc:gc + cells],
+                           1)
+            p = np.poly1d(z)
+
+            dFdx[ind, 0:gc] = p(xc[0:gc])
+            #print(f'dFdx[ind, 0:gc] = p(xc[0:gc]) = {p(xc[0:gc])}')
+
+            z = np.polyfit(xc[-(gc + cells):],
+                           dFdx[ind, -(gc + cells):],
+                           1)
+            p = np.poly1d(z)
+            dFdx[ind, -gc:] = p(xc[-gc:])
+
+            # z = np.polyfit(self.xc[self.gc+:self.gc + 4],
+        #                dFdx[ind, self.gc + 1:self.gc + 4], 2)
+        # p = np.poly1d(z)
+
+    # set i=0 to i=1 (no flux at i=0, see above)
+    return dFdx
+
 
 def plot_all_results(Usol, x, t):
     """
@@ -358,6 +465,8 @@ if __name__ == "__main__":
     solver = WRKR(f, s, N=N, x0=0.0, xf=L, t0=0.0,
                   #tf=tf, #dt=0.5*tf,
                   tf=tf, #dt=0.5*tf,
+                  flux_bc = BC_flux,
+                  bc=BC,
                   dim=5)
 
     # Compute e_0
@@ -369,7 +478,7 @@ if __name__ == "__main__":
     print(f'U_0.shape = {U_0.shape}')
     print(f'U_0 = {U_0}')
     # Solve
-    Urk3, solrk3 = solver.rk3(U_0)  # self.U_0_sol
+    Urk3, solrk3 = solver.rk3(U_0,)  # self.U_0_sol
     #Ue, sole = solver.euler(U_0)  # self.U_0_sol
     U = solrk3
     print(f'Finished simulation, plotting results...')
