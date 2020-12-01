@@ -83,18 +83,23 @@ if __name__ == "__main__":
     N = 81
     N = 200
     N = 600
+    #N = 1200
+    #N = 3000
+    #N = 20
     #N = 1000
     tf = 0.13
+    tf = 0.15
     #tf = 0.045
     #tf = 0.047
     #tf = 0.13
     solver = WRKR(f, s, N=N,
                   #x0=-2.0,
-                  #x0=-0.5,
-                  x0=-1,
+                  x0=-0.7,
+                  # x0=-1,
                   #x0=-5.0,
                   #xf=2.0,
-                  xf=1.0,
+                  #xf=1.0,
+                  xf=0.5,
                   #xf=5.0,
                   t0=0.0,
                   #tf=0.014,
@@ -122,10 +127,10 @@ if __name__ == "__main__":
     if 1:
         plt.figure(1)
         plt.plot(1)
-        plt.plot(solver.xc, U_0[0, :].T, 'x', label='Initial 1 (rho)')
+        plt.plot(solver.xc, U_0[0, :].T, 'x-', label='Initial 1 (rho)')
         if 0:
-            plt.plot(solver.xc, U_0[1, :].T, 'x', label='Initial 2 (rho * u)')
-            plt.plot(solver.xc, U_0[2, :].T, 'o', label='Initial 3 (E)')
+            plt.plot(solver.xc, U_0[1, :].T, 'x-', label='Initial 2 (rho * u)')
+            plt.plot(solver.xc, U_0[2, :].T, 'x-', label='Initial 3 (E)')
 
         plt.legend()
     # plt.show()
@@ -141,14 +146,10 @@ if __name__ == "__main__":
         plt.plot(solver.xc, Urk3[0, :].T, 'x-',
                  label='RK3 1 (rho)')
         if 0:
-            plt.plot(solver.xc, Urk3[1, :].T, '-',
+            plt.plot(solver.xc, Urk3[1, :].T, 'x-',
                      label='RK3 2 (rho * u)')
-            plt.plot(solver.xc, Urk3[2, :].T, '-',
+            plt.plot(solver.xc, Urk3[2, :].T, 'x-',
                      label='RK3 3 (E)')
-        #plt.plot(solver.x, Urk3[1, solver.gc:-(solver.gc)].T, 'x',
-        #         label='RK3 2')
-        #plt.plot(solver.x, Urk3[2, solver.gc:-(solver.gc)].T, 'o',
-        #         label='RK3 3')
 
         plt.legend()
         plt.show()

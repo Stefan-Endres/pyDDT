@@ -4,14 +4,16 @@ from progress.bar import IncrementalBar
 
 
 class WRKR():
-    def __init__(self, f, s, bc=None, flux_bc=None,
+    def __init__(self, f, s, bc=None, flux_bc=None, c_func=None,
                  N=81, x0=0.0, xf=2.0, t0=0.0, tf=0.5,
                  dt=None, dim=1,
-                 k=3):
+                 k=3, **param_dict):
         self.f = f  # Vector function f
         self.s = s  # Vector function s
         self.bc = bc  # Dirichlet boundary condition u function for ghost cells
         self.flux_bc = flux_bc  # Neumann boundary condition function for ghost cells
+        self.c_func = c_func
+        self.param_dict = param_dict
         # k number of weights Order= 2*k-1
         # Domain
         self.dim = dim
@@ -23,8 +25,9 @@ class WRKR():
         if dt == None:
                 #self.dt =  (self.dx) ** (5 / 4.0) #* 0.1
                 # self.dt = 0.5* (self.dx) ** (5 / 4.0) #* 0.1
-                #self.dt = 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
-                self.dt = 0.05 * (self.dx) ** (5 / 3.0) #* 0.1
+                self.dt = 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+                self.dt = 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+                #self.dt = 0.05 * (self.dx) ** (5 / 3.0) #* 0.1
         else:
             self.dt = dt
 
@@ -56,7 +59,7 @@ class WRKR():
 
 
 
-    def dFdx(self, F, C, WENO=True):
+    def dFdx(self, F, C, WENO=True, t=None):
         """
         Computes the numerical flux values 1/dx()
 
@@ -135,6 +138,7 @@ class WRKR():
         #print(f'f_i_p1_2.shape = {f_i_p1_2.shape}')
         self.flux = np.zeros_like(F[:, 2:-2])
         self.flux[:, 1:] = f_i_p1_2[:, 1:] - f_i_p1_2[:, 0:-1]
+
         # TODO: What do we do with the cell value at i = 0??? It is not possible
         #       to calculate a F_{i-1/2} value, Equation 12 works for f_{i+1/2}
         #       but we need f_{i-2}, f_{i-1}, f_{i}, F_{i+1}, F_{i+2}.
@@ -142,70 +146,28 @@ class WRKR():
         #       value. For now we set it to zero (and modify in BC):
         #self.flux[:, 0] = np.zeros_like(F[:, 0])
         # Set all rows and all columns (excluding ghost cells) to flux
+        dFdx[:, 2:-2] = self.flux
+        #dFdx[:, self.gc] = dFdx[:, self.gc + 1]
 
+        # Boundary conditions, if any:
+        if self.flux_bc is not None:
+            dFdx = self.flux_bc(dFdx, self.xc, self.gc, t=t)
 
-        dFdx[:, 2:-2] = self.flux/self.dx
-
-        # Use "outflow" boundary conditions proposed in:
-        # http://physics.princeton.edu/~fpretori/Burgers/Boundary.html
         #print(f'dFdx = {dFdx}')
-        #print(f'self.xc = {self.xc}')
-        if 1:
-            for i_gc in range(self.gc):
-                dFdx[:, i_gc] = dFdx[:, self.gc + 1]
-                dFdx[:, -(i_gc+1)] = dFdx[:, -(self.gc + 1)]
+        return dFdx/self.dx
 
-        # use second order BC fit
-        if 0:
-            #print(f'self.xc[self.gc + 1:self.gc + 3] = {self.xc[self.gc + 1:self.gc + 4]}')
-            #print(f'dFdx[:, self.gc + 1:self.gc + 3] = {dFdx[:, self.gc + 1:self.gc + 4]}')
-            for ind in range(self.dim):
-                z = np.polyfit(self.xc[self.gc + 1:self.gc + 4],
-                               dFdx[ind, self.gc + 1:self.gc + 4], 2)
-                p = np.poly1d(z)
-                dFdx[ind, 0:self.gc] = p(self.xc[0:self.gc])
-
-                #z = np.polyfit(self.xc[self.gc+:self.gc + 4],
-               #                dFdx[ind, self.gc + 1:self.gc + 4], 2)
-                #p = np.poly1d(z)
-
-        # set i=0 to i=1 (no flux at i=0, see above)
-        dFdx[:, self.gc] = dFdx[:, self.gc + 1]
-        #print(f'dFdx = {dFdx}')
-        return dFdx
-
-    def dFdx_old(self, F, C):
-        # Solve U
-        # Iterate over rows:
-        dFdx = np.zeros_like(F)
-        for ind, f in enumerate(F):
-            for i in range(self.gc, self.N + self.gc):
-                xloc = self.xc[i - (self.k - 1):i + self.k]
-                floc =       f[i - (self.k - 1):i + self.k]
-                # Find fluxes f_left and f_right using a scheme
-                #f_left,f_right = ENO(xloc,floc,self.k)
-                f_left, f_right = WENO(xloc, floc, self.k)
-                self.flux[i] = f_right - f_left
-
-            #for i in range(self.gc, self.N - 1 + self.gc + 1):
-            for i in range(self.gc, self.N + self.gc + 1):
-            #for i in range(0, self.N + self.gc + 1):
-                dFdx[ind, i] = self.flux[i]#/self.dx
-        #print(f'self.flux = {self.flux}')
-        if 0:
-            print('=' * 30)
-            print(f'dFdx = {dFdx}')
-            print('=' * 30)
-
-        return dFdx
-
-    def Alpha(self, U, F):
+    def Alpha(self, U, F, C=None):
         """
         Compute Alpha values for Lax-Friedrich splitting
         :param U:
         :param F:
         :return:
         """
+        if C is not None:
+            Alpha = np.zeros(self.dim)
+            Alpha[:] = C
+            return Alpha
+
         Alpha = np.zeros(self.dim)
 
         if 0:
@@ -266,7 +228,6 @@ class WRKR():
 
             # Value from Peng (2019)
             if 1:
-
                 gamma = 1.4
                 rho = U[0]
                 #print(f'rho  {rho}')
@@ -297,13 +258,7 @@ class WRKR():
         #print(f'Alpha = {Alpha}')
         return Alpha
 
-    def dLdt(self, U):
-        if self.bc is None:
-            pass
-        else:
-            #U = self.bc(U)  # Apply boundary conditions
-            U = self.bc(U, self.x, self.t)  # Apply boundary conditions
-            #print(f't_c = {t_c}')
+    def dLdt(self, U, t=None):
 
         F, pp = self.f(U)
         S, C = self.s(U, F, pp)
@@ -335,6 +290,11 @@ class WRKR():
             dFndx = self.dFdx(Fn, C)
         dFdx = (dFpdx + dFndx)
         dFdx = dFdx
+        #TEST DELETE THIS:
+        if 0:
+            dFdx[:, self.gc] = 0.0
+            dFdx[:, -(self.gc+1)] = 0.0
+        #print(f'dFdx = {dFdx}')
         return S - dFdx
 
     def rk3(self, U_0):
@@ -349,26 +309,22 @@ class WRKR():
         prog_bar = IncrementalBar('Simulation progress', max=len(self.t))
 
         for t_c in self.t[1:]:
-            self.t = t_c
-            #print(f'self.t = {self.t}')
-            # if c > 0:
-            #   uc[i] = uc[i] - dt / dx * (flux[i] - flux[i - 1])
-            # Compute new U_t+1
+            self.t_c = t_c
+            # Compute boundary conditions:
+            if self.bc is None:
+                pass
+            else:
+                U = self.bc(U, self.xc, t_c)  # Apply boundary conditions
+            #
             Uc = U.copy()
-
             # Compute U_1
-           # F, pp = self.f(U)
-            #S, C = self.s(U, F, pp)
-            # Lax-Friedrich's splitting
-            #dFdt = self.dFdt(F, C)
-
-            dLdt = self.dLdt(U)  #dLdt = S - dFdt
+            dLdt = self.dLdt(U, t_c)  #dLdt = S - dFdt
             U_1 = Uc + self.dt * dLdt
             # Compute U_2
-            dLdt = self.dLdt(U_1)
+            dLdt = self.dLdt(U_1, t_c)
             U_2 = 3/4.0 * Uc + 1/4.0 * U_1 + 1/4.0 * self.dt * dLdt
             # Compute U
-            dLdt = self.dLdt(U_2)
+            dLdt = self.dLdt(U_2, t_c)
             U = 1/3.0 * Uc + 2/3.0 * U_2 + 2/3.0 * self.dt * dLdt
 
             ind += 1
@@ -398,13 +354,15 @@ class WRKR():
         ind = 0  # solution index tracker
         prog_bar = IncrementalBar('Simulation progress', max=len(self.t))
         for t_c in self.t[1:]:
-            self.t = t_c
-            print(f'self.t = {self.t}')
-           # U = self.bc(U)
-           # F, pp = self.f(U)
-           # S, C = self.s(U, F, pp)
+            self.t_c = t_c
 
-            dLdt = self.dLdt(U)
+            # Compute boundary conditions:
+            if self.bc is None:
+                pass
+            else:
+                U = self.bc(U, self.xc, t_c)  # Apply boundary conditions
+
+            dLdt = self.dLdt(U, t_c)
             #U = U + self.dt * self.dUdt(U)
             U = U + self.dt * dLdt
             ind += 1

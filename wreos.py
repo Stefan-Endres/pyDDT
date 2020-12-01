@@ -58,17 +58,15 @@ def volumes(v, lambd, phi):
     return sol.x
 
 
-def p_from_e(energy, v, lambd, phi):
+def p_from_e(e, v, lambd, phi):
     """
     Compute the pressure, given energy, volume, lambd and phi
-    :param energy: energy
+    :param e: energy
     :param v: specific volume
     :param lambd: reaction progress
     :param phi: porosity
-    :param guess: Initial guess for p and v
-    :return: p, v  # pressure and volume
+    :return: p, pressure
     """
-    e = energy
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
     if 0:
@@ -96,31 +94,27 @@ def p_from_e(energy, v, lambd, phi):
                                                    + gamma_r(v_r)*lambd*phi*v_p)
     return P
 
-def p_from_e_no_reaction(energy, v, phi, lambd=0):
+def p_from_e_no_reaction(e, v, phi, lambd=0):
     """
     Compute the pressure, given energy, volume and phi, lambd=0
-    :param energy: energy
-    :param v: specific volume
+    :param e: internal energy, mm2 us-2
+    :param v: specific volume, mm3/g
     :param lambd: reaction progress, must be 0.0
-    :param phi: porosity
-    :param guess: Initial guess for p and v
-    :return: p, v  # pressure and volume
+    :param phi: porosity, -
+    (e_0, v_0, lambd_0, phi_0
+
     """
-    e = energy
     #v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
-    v_r = phi * v
+    v_r = phi * v  # mm2 us-2
+
+    P = phi * (gamma_r(v_r) * e - gamma_r(v_r) * e_s_r(v_r)
+                + p_s_r(v_r) * v_r) / v_r
+
+    #P = phi * (gamma_r(v_r) * e - gamma_r(v_r) * e_s_r(v_r)
+    #            + p_s_r(v_r) * v_r) / v_r
 
 
-    P = phi*(gamma_p(v_p)*gamma_r(v_r)*e
-             - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd
-             + gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)*lambd
-             - gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)
-             - gamma_p(v_p)*lambd*p_s_r(v_r)*v_r
-             + gamma_p(v_p)*p_s_r(v_r)*v_r
-             + gamma_r(v_r)*lambd*p_s_p(v_p)*v_p)/(-gamma_p(v_p)*lambd*v_r
-                                                   + gamma_p(v_p)*v_r
-                                                   + gamma_r(v_r)*lambd*phi*v_p)
     return P
 
 def e_i(p, v, lambd, phi):
@@ -195,7 +189,8 @@ def e_s_p(v):
                   / ((v/v_c)**(k_wr - 1 + a)))
 
 # Equation A7
-e_c = (p_c * v_c) / (k_wr - 1 + a)
+if 1:
+    e_c = (p_c * v_c) / (k_wr - 1 + a)
 
 
 """Detonation reactants"""
@@ -237,7 +232,11 @@ def p_s_r(v):
 def y(v):
     return 1 - v/v_0
 
-p_hat = rho_0 * A**2 / (4 * B)
+if 1:
+    #p_hat = rho_0 * A**2 / (4 * B)  # Units here are are mixed (g/cm3) * (mm/us)*2
+    #p_hat = rho_0 * 0.01 * A**2 / (4 * B)  # (g/cm3) * (cm/us)*2  = g cm-1 us-2
+
+    p_hat = rho_0 * A ** 2 / (4 * B)  # (g/mm3) * (mm/us)*2  = g mm-1 us-2
 
 
 def p_s_r_y(y):
@@ -289,49 +288,84 @@ def gamma_r(v):
 # y_max = 2 / (gamma_p * (y_max + 2))
 
 if __name__ == '__main__':
+    # Parameters
+    if 0:
+       # e_0_guess = 3.731  # kJ / g  (Wescott(?))
+       # e_0_guess = 3.98329  # kJ / g  (Wescott(?))
+        #e_0_guess = 5.71  # kJ / g  (Wescott(?))
+
+        e_0_guess = 3.98329  # mm2 us-2 = kJ / g  (Wescott(?))
+        e_0_guess = 3.98329  # mm2 us-2 = kJ / g  (Wescott(?))
+        e_0 = e_0_guess
+
+        phi_0 = 0.75
+        #TMD = 1.76  # g/cm^3
+        TMD = 1.76*1e-3  # g/mm^3
+        rho_0 = 0.75*TMD  # g/mm3 Initial density
+        v_0 = (rho_0) ** (-1)  # mm3/g # Assume experimental condition
+    #    p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
+    #    p_0 = 1.0e-12  # mm-1 us-2 = MPa (equivalent to 1 atmosphere)
+        p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
+        lambd_0 = 0.0
+
+        # Calibrated parameters for the reactant WR-EOS
+        A = 2.3  # mm/us  # us = microsecond
+        B = 2.50  # -
+        C = 0.70  # -
+        Z = -0.8066  # -
+        gamma_0_r = 1.22  # -
+       # q = 5.71  # kJ/g
+       # TMD = 1.76  # g/cm^3
+       # C_v = 992.0  # J / kg K
+
+        #p_hat = rho_0 * 0.01 * A ** 2 / (4 * B)  # (g/cm3) * (cm/us)*2  = g cm-1 us-2
+        p_hat = rho_0 * A ** 2 / (4 * B)  # (g/mm3) * (mm/us)*2  = g mm-1 us-2
+
+        # Calibrated parameters for the product WR-EOS
+        a = 0.7579
+        k_wr = 1.30
+        #v_c = 1.2171  # cm^3/g
+        v_c = 1.2171*1e3  # mm^3/g
+        #p_c = 1.5899  # Gpa
+        p_c = 1.5899*1e-3  # g mm-1 us-2
+        n = 0.950
+        b = 0.80
+        C_v = 650  # J /(kg K)
+
+        # Equation A7
+        e_c = (p_c * v_c) / (k_wr - 1 + a)
+
     # Sanity checks
-
-    print(e_p(2, 3))
-    print(p_p(e_p(2, 3), 3))
-
-    print(e_r(2, 0.1))
-    print(p_r(e_r(2, 0.1), 0.1))
-    """
-    print(p_r(e_r(5, 0.1), 0.1))
-    print(e(p_0, 0.1, 0.0, 0.65))
-    print(e(p_0, 0.1, 0.1, 0.65))
-    print(e(p_0, 0.1, 1, 0.80))
-    print(e(p_0, 0.1, 1, 1))
-    print(e(p_0, 0.03, 1, 1))
-    print(e(p_0, 0.3, 1, 1))
-    print(e(p_0, 0.5, 1, 1))
-    print(e(p_0, 0.5, 0.5, 1))
-    print(e(p_0, 0.5, 0.5, 0.5))
-    """
-
     print('='*100)
     #print('e_0 should be 3.983295207817231')  # before fixing gamma_r
     #print('e_0 should be 4.573901456496666')
     print(f'e_0_test should be equal to param e_0 = {e_0}')
-    phi_0 = 0.75
-    rho_0 = 1.6  # Initial density
-    v_0 = (rho_0) ** (-1)  # Assume experimental condition
-    p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
-    lambd_0 = 0.0
+
+    # TODO: Build a test suite
     e_0_test = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
-    #print(f'e_0_test out = {e_0}')  #TODO: Build a test suite
-    print(f'e_0_test out = {e_0_test}')  #TODO: Build a test suite
+    #print(f'e_0_test out = {e_0}')
+    print(f' e_0_test = e(p_0, v_0, lambd_0, phi_0) = {e_0_test}')
+    #print(f'p_r(p_0, v_0) = {p_r(p_0, v_0)}')
+    print(f'p_from_e(e_0, v_0, lambd_0, phi_0)'
+          f'= {p_from_e(e_0, v_0, lambd_0, phi_0)}')
+    print(f'p_from_e_no_reaction(e_0, v_0, phi_0)'
+          f'= {p_from_e_no_reaction(e_0, v_0, phi_0)}')
+    print('=' * 13)
     print(f'Test p_from_e')
-    print(f'P should be 1.0e-9 ')
+    print('=' * 13)
+    #print(f'P should be 1.0e-9 ')
+    print(f'P should be {p_0}: ')
     P = p_from_e(e_0_test, v_0, lambd_0, phi_0)
-    print(f'P out = {P}')
+    P2 = p_from_e_no_reaction(e_0_test, v_0, phi_0)
+    print(f'p_from_e(e_0_test, v_0, lambd_0, phi_0)= {P}')
+    print(f'p_from_e_no_reaction(e_0_test, v_0, phi_0) = {P2}')
     #P_p = p_p(e_0_test, v_0*phi_0*0.01)
     P_p = p_p(e_0_test, v_0)
-    print(f'P_p out = {P_p}')
+    print(f'p_p(e_0_test, v_0) = {P_p}')
     print('='*100)
     print(f'New test e should be ?:')
     e_out = e(P, v_0, lambd_0, phi_0)
-    print(f'e from new P out = {e_out}')
+    print(f'e(P, v_0, lambd_0, phi_0)= {e_out}')
     print('='*100)
 
 

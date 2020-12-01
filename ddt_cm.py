@@ -30,14 +30,12 @@ def r_phi(p, phi):  # units validated
     :param phi: Porosity
     :return: r_phi  # compaction rate in us-1
     """
-    #return 0.0
-    rate_phi = k_phi * (p - p_0 - P_h * (1 - np.sqrt((phi_0*(1 - phi))
+    return 0.0
+    return k_phi * (p - p_0 - P_h * (1 - np.sqrt((phi_0*(1 - phi))
                                                  / (phi*(1 - phi_0))
                                                  )
                                      )
                     )
-    rate_phi = np.nan_to_num(rate_phi)
-    return rate_phi
 
 # Reaction rate
 def r_lambda(p, lambd):  # units validated
@@ -47,12 +45,8 @@ def r_lambda(p, lambd):  # units validated
     :param lambd: Reaction progression \in [0, 1]
     :return: r_lambda  # Reaction rate in in us-1
     """
-    #print(f'np.heaviside(p - p_ign, 1) = {np.heaviside(p - p_ign, 1)}')
-    #return 0.0
-    rate_lambda = np.heaviside(p - p_ign, 1) * k * (p/p_cj)**mu * (1 - lambd)**upsilon
-    rate_lambda = np.nan_to_num(rate_lambda)  #TODO: SHOULDN'T NEED THIS!!!
-    return rate_lambda
-
+    return 0.0
+    return np.heaviside(p - p_ign, 1) * k * (p/p_cj)**mu * (1 - lambd)**upsilon
 
 def p_v(energy, lambd, phi, guess):
     """
@@ -183,18 +177,10 @@ def f(U):
     # Compute the porosity at every element
     PHI = U[3] / U[0]  # phi = (rho * phi) / rho
     # print(f'Phi = {Phi}')
-    if (PHI > 1).any():
-        print(f'WARNING: np.any(PHI) > 1')
-        PHI = np.minimum(PHI, np.ones_like(PHI))
 
     # Compute the reaction progress at every element
     LAMBD = U[4] / U[0]  # lambd = (rho * lambd) / rho
     # print(f'Lambd = {Lambd}')
-    if (LAMBD > 1).any():
-        print(f'WARNING: np.any(LAMBD) > 1')
-        # TODO: This should never be above 1.0, but it is, check with S curves
-        #       for now we force lambda to be max 1.0
-        LAMBD = np.minimum(LAMBD, np.ones_like(LAMBD))
 
     F[3] = F[0] * PHI  # 'rho * u * phi'  # also U[1] * U[3]/U[0]
     F[4] = F[0] * LAMBD  # 'rho * u * Lambd'  # also U[1] * U[4]/U[0]
@@ -208,7 +194,7 @@ def f(U):
     for ind in range(np.shape(U)[1]):  # TODO: Extremely slow
         P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
         #TODO: REMOVE BELOW
-        #P[ind] = p_from_e_no_reaction(E[ind], V[ind], PHI[ind])
+        P[ind] = p_from_e_no_reaction(E[ind], V[ind], PHI[ind])
         #P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
         #P[ind] = E[ind]/V[ind]
         #P[ind] = U[0]  *   # P_IG = rho * (R/M) * T
@@ -285,7 +271,6 @@ def s(U, F, pp):
         print('=-'*30)
         print('=-'*30)
 
-    #print(f'S = {S}')
     return S, C
 
 def plot_all_results(Usol, x, t):
@@ -315,17 +300,14 @@ def plot_all_results(Usol, x, t):
         Res[tind, 4, :] = LAMBD
 
 
-    Pressure_plot = np.minimum(Res[:, 0, :]*1e3, np.ones_like(Res[:, 0, :])*500)
-    plot_u_t(x, t, Pressure_plot,
+    plot_u_t(x, t, Res[:, 0, :]*1e3,
                   #title=r'Pressure $P$ (GPa) $\times 10^{-3}$', fign=0)
                   title=r'Pressure $P$ (GPa)', fign=0)
 
-    Density_plot = np.minimum(Res[:, 1, :]*1e3, np.ones_like(Res[:, 0, :])*5)
-    plot_u_t(x, t, Density_plot,
+    plot_u_t(x, t, Res[:, 1, :]*1e3,
                   #title=r'Density $\rho$ (g/mm$^3$)', fign=1)
                   title=r'Density $\rho$ (g/cm$^3$)', fign=1)
 
-    Velocity_plot = np.minimum(Res[:, 2, :], np.ones_like(Res[:, 0, :])*5)
     plot_u_t(x, t, Res[:, 2, :],
                   title=r'Velocity $u$ (mm . $\mu$ s$^{-1}$)', fign=2)
 
@@ -344,6 +326,7 @@ def plot_u_t(x, t, U, title=r'Density $\rho$ (g/mm$^3$)', fign=1):
     :param t:
     :return:
     """
+    #x = x * 10.0  # cm --> mm
     x = x  # mm
     plt.figure(fign)
     plt.plot()

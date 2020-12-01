@@ -29,6 +29,9 @@ def IC(x):
                     (1 + 0.2 * np.sin(np.pi * x) )*1,
                      E])
 
+def c_func(U, F):
+    pass
+
 def BC(U, x, t=None):
     # BCs?
    # return U
@@ -41,7 +44,8 @@ def BC(U, x, t=None):
             #U[ind, -gc:] = 0.0
         #print(f'U after BC = {U}')
 
-    if 1:
+    # Exact boundary conditions
+    if 0:
         p = 1
         rho = 1 + 0.2 * np.sin(np.pi * (x - t))
         u = 1
@@ -60,12 +64,65 @@ def BC(U, x, t=None):
 
             U[ind, 0:gc] = exact[ind, 0:gc]#.T
             #U[ind, 0:gc] = 0.0
-            U[ind, -gc:] = exact[ind, -gc]#.T
+            U[ind, -gc:] = exact[ind, -gc:]#.T
             #U[ind, -gc:] = 0.0
-
+        #print(f'U in BC = {U}')
         return U
 
+    # Periodic boundary conditions
+    for ind in range(3):
+        #print(f'U[ind, {(N-(gc + 1))}:{N}] = {U[ind, (N-(gc + 1)):N]}')
+        U[ind, 0:(gc + 1)] = U[ind, (N-(gc + 1)):N]
+        #print(f'U[ind, {gc}:{(gc + gc + 1)}] = {U[ind, -gc:(gc + gc + 1)]}')
+        U[ind, -(gc + 1):] = U[ind, gc:(gc + gc + 1)]  # .T
+
     return U
+
+
+def BC_flux(dFdx, xc, gc, t=None):
+    # Use "outflow" boundary conditions proposed in:
+    # http://physics.princeton.edu/~fpretori/Burgers/Boundary.html
+    # print(f'dFdx = {dFdx}')
+    # print(f'self.xc = {self.xc}')
+
+    if 0:
+        for i_gc in range(gc):
+            dFdx[:, i_gc] = dFdx[:, gc + 1]
+            # dFdx[:, i_gc-1] = dFdx[:, self.gc+1]
+            dFdx[:, -(i_gc + 1)] = dFdx[:, -(gc + 1)]
+
+    # use second order BC fit
+    if 0:
+        # print(f'self.xc[self.gc + 1:self.gc + 3] = {self.xc[self.gc + 1:self.gc + 4]}')
+        # print(f'dFdx[:, self.gc + 1:self.gc + 3] = {dFdx[:, self.gc + 1:self.gc + 4]}')
+
+        cells = 2  # cells to extrapolate
+        for ind in range(3):
+            #print('-')
+            #print(f'c[gc:gc + 2] = {xc[gc:gc + cells]}')
+            #print(f'dFdx[ind, gc:gc + 2] = {dFdx[ind, gc:gc + cells]}')
+
+            #print('-')
+            z = np.polyfit(xc[gc:gc + cells],
+                           dFdx[ind, gc:gc + cells],
+                           1)
+            p = np.poly1d(z)
+
+            dFdx[ind, 0:gc] = p(xc[0:gc])
+            #print(f'dFdx[ind, 0:gc] = p(xc[0:gc]) = {p(xc[0:gc])}')
+
+            z = np.polyfit(xc[-(gc + cells):],
+                           dFdx[ind, -(gc + cells):],
+                           1)
+            p = np.poly1d(z)
+            dFdx[ind, -gc:] = p(xc[-gc:])
+
+            # z = np.polyfit(self.xc[self.gc+:self.gc + 4],
+        #                dFdx[ind, self.gc + 1:self.gc + 4], 2)
+        # p = np.poly1d(z)
+
+    # set i=0 to i=1 (no flux at i=0, see above)
+    return dFdx
 
 def f(U):
     """
@@ -89,6 +146,7 @@ def f(U):
     F[2] = u * (E + p)
     pp = (rho, u, E, p)
     return F, pp
+
 
 
 def s(U, F, pp):
@@ -126,10 +184,11 @@ def exact(x, t):
 if __name__ == "__main__":
     N = 20
     N = 50
-    #N = 200
+  #  N = 200
     #N = 81
    # N = 400
-  #  N = 400
+    #N = 200
+    N = 81
     tf = 0.05
     tf = 0.05999
 
@@ -139,19 +198,27 @@ if __name__ == "__main__":
     #tf = 0.45
     tf = 0.2
     tf = 0.3
-    tf = 0.35
-    tf = 1.0
-    tf = 1.2
-    tf = 0.2
+    tf = 2.0
+    #tf = 0.6
+    #tf = 1.0
+   # tf = 2.0
+    #tf = 0.5
+    #tf = 0.3
+   # tf = 1.2
+    #tf = 0.01
+    #tf = 0.2
     #tf = 0.
     #tf = 1.0
    # tf = 0.4
     #tf = 2.0
     #tf = 0.6
    # tf = 0.06
-    solver = WRKR(f, s, #bc=BC,
+    solver = WRKR(f, s, flux_bc=BC_flux,
+                  bc=BC,
                   N=N, x0=0.0, xf=2.0, t0=0.0,
                   tf=tf, dim=3, #dt= 0.001
+                  k=3
+                  #k=500
                   )
     # IC's
     #U_0 = np.zeros(N)
