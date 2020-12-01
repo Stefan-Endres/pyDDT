@@ -70,29 +70,21 @@ def p_from_e(e, v, lambd, phi):
     """
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
-    if 0:
-        #TODO: Deleate reduntant computation
-        P = phi*(gamma_p(v_p)*lambd*p_s_p(v_p)*v_r
-                 - gamma_r(v_r)*lambd*p_s_r(v_r)*v_p
-                 + gamma_r(v_r)*p_s_r(v_r)*v_p
-                 + e*v_p*v_r
-                 - e_s_p(v_p)*lambd*v_p*v_r
-                 + e_s_r(v_r)*lambd*v_p*v_r
-                 - e_s_r(v_r)*v_p*v_r
-                 )/(
-                gamma_p(v_p)*lambd*phi*v_r
-                - gamma_r(v_r)*lambd*v_p
-                + gamma_r(v_r)*v_p)
-
-    P = phi*(gamma_p(v_p)*gamma_r(v_r)*e
-             - gamma_p(v_p)*gamma_r(v_r)*e_s_p(v_p)*lambd
-             + gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)*lambd
-             - gamma_p(v_p)*gamma_r(v_r)*e_s_r(v_r)
-             - gamma_p(v_p)*lambd*p_s_r(v_r)*v_r
-             + gamma_p(v_p)*p_s_r(v_r)*v_r
-             + gamma_r(v_r)*lambd*p_s_p(v_p)*v_p)/(-gamma_p(v_p)*lambd*v_r
-                                                   + gamma_p(v_p)*v_r
-                                                   + gamma_r(v_r)*lambd*phi*v_p)
+    gam_p = gamma_p(v_p)
+    gam_r = gamma_r(v_r)
+    e_s_p_vp = e_s_p(v_p)
+    e_s_r_vr = e_s_r(v_r)
+    p_s_r_vr = p_s_r(v_r)
+    p_s_p_vp = p_s_p(v_p)
+    P = phi*(gam_p*gam_r*e
+             - gam_p*gam_r*e_s_p_vp*lambd
+             + gam_p*gam_r*e_s_r_vr*lambd
+             - gam_p*gam_r*e_s_r_vr
+             - gam_p*lambd*p_s_r_vr*v_r
+             + gam_p*p_s_r_vr*v_r
+             + gam_r*lambd*p_s_p_vp*v_p)/(-gam_p*lambd*v_r
+                                          + gam_p*v_r
+                                          + gam_r*lambd*phi*v_p)
     return P
 
 def p_from_e_no_reaction(e, v, phi, lambd=0):
@@ -111,6 +103,10 @@ def p_from_e_no_reaction(e, v, phi, lambd=0):
 
     P = phi * (gamma_r(v_r) * e - gamma_r(v_r) * e_s_r(v_r)
                 + p_s_r(v_r) * v_r) / v_r
+
+    if 0:
+        P = phi * (gamma_r(v) * e - gamma_r(v) * e_s_r(v)
+                    + p_s_r(v) * v_r) / v_r
 
     #P = phi * (gamma_r(v_r) * e - gamma_r(v_r) * e_s_r(v_r)
     #            + p_s_r(v_r) * v_r) / v_r
@@ -267,7 +263,6 @@ def e_s_r(v):
     INT = integrate.quad(p_s_r_y, 0, y_lim)
     if INT[1] >= 1e-1:
         print(f"WARNING: Integral error in e_s_r is high {INT}")
-    #return v_0 * INT[0] + 7.07  #+ e_0  #TODO: Check
     return v_0 * INT[0] + e_0  #TODO: Check
 
 
@@ -345,7 +340,7 @@ if __name__ == '__main__':
     # TODO: Build a test suite
     e_0_test = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
     #print(f'e_0_test out = {e_0}')
-    print(f' e_0_test = e(p_0, v_0, lambd_0, phi_0) = {e_0_test}')
+    print(f'e_0_test = e(p_0, v_0, lambd_0, phi_0) = {e_0_test}')
     #print(f'p_r(p_0, v_0) = {p_r(p_0, v_0)}')
     print(f'p_from_e(e_0, v_0, lambd_0, phi_0)'
           f'= {p_from_e(e_0, v_0, lambd_0, phi_0)}')

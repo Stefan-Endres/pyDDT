@@ -131,10 +131,10 @@ def init_cond(e_0, printout=True, x=None):
 
     print(f'U_0.shape = {U_0.shape}')
     # Density
-    U_0[0] = rho_0  # g/cm3 # Initial density 'rho' in tube
+    U_0[0] = rho_0  # g/mm3 # Initial density 'rho' in tube
 
     # Momentum
-    U_0[1] = rho_0 * u_0  # g/cm3 * cm/us Initial momentum 'rho * v'
+    U_0[1] = rho_0 * u_0  # g/mm3 * mm/us Initial momentum 'rho * v'
     U_0[1, 0:(gc + 1)] = rho_0 * u_0_1  # Initial momemtum 'rho * u' on the boundary
 
     # Energy
@@ -179,12 +179,12 @@ def f(U):
     """
     # self.c * U
     F = np.zeros_like(U)
-    F[0] = U[1]  # 'rho * u' (g cm-2 us-1)
+    F[0] = U[1]  # 'rho * u' (g mm-2 us-1)
     # Compute the velocity at every element
-    u = U[1] / U[0]  # u (cm s-1) = rho * u / rho
+    u = U[1] / U[0]  # u (mm s-1) = rho * u / rho
     # print(u)
     # Compute the energy (temperature) at every element  # Validated
-    # Units of cm2 us-2
+    # Units of mm2 us-2
     E = U[2] / U[0] - (u ** 2) / 2.0
     # 'e = rho * ((e + u**2/2.0))/rho - u**2/2.0'
 
@@ -195,14 +195,14 @@ def f(U):
     PHI = U[3] / U[0]  # phi = (rho * phi) / rho
     # print(f'Phi = {Phi}')
     if (PHI > 1).any():
-        print(f'WARNING: np.any(PHI) > 1')
+        #print(f'WARNING: np.any(PHI) > 1')
         PHI = np.minimum(PHI, np.ones_like(PHI))
 
     # Compute the reaction progress at every element
     LAMBD = U[4] / U[0]  # lambd = (rho * lambd) / rho
     # print(f'Lambd = {Lambd}')
     if (LAMBD > 1).any():
-        print(f'WARNING: np.any(LAMBD) > 1')
+        #print(f'WARNING: np.any(LAMBD) > 1')
         # TODO: This should never be above 1.0, but it is, check with S curves
         #       for now we force lambda to be max 1.0
         LAMBD = np.minimum(LAMBD, np.ones_like(LAMBD))
@@ -212,42 +212,30 @@ def f(U):
 
     # Compute the pressure
     # Compute the specific volume from the density
-    V = U[0] ** (-1)  # specific volume (cm3 g-1)
+    V = U[0] ** (-1)  # specific volume (mm3 g-1)
     # TODO: Try to vectorize
     ## P = p_from_e(E, V, LAMBD, PHI)
     P = np.zeros(np.shape(U)[1])
     for ind in range(np.shape(U)[1]):  # TODO: Extremely slow
         P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
-        #TODO: REMOVE BELOW
         #P[ind] = p_from_e_no_reaction(E[ind], V[ind], PHI[ind])
-        #P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
-        #P[ind] = E[ind]/V[ind]
-        #P[ind] = U[0]  *   # P_IG = rho * (R/M) * T
-        #
-        #P[ind] = P[ind]
-        # Units: E[ind]  (cm2 us-2 --> 1e2 kJ g-1)
-        #P[ind] = p_from_e(E[ind]*1e2, V[ind], LAMBD[ind], PHI[ind])
-        #P[ind] = p = (E[ind] - 0.5 * U[0][ind] * u[ind]**2) * (1.4 - 1)
-        #P[ind] = p_from_e_no_reaction(E[ind]*1e2, V[ind], PHI[ind])
     # print(f'P = {P}')
 
     #TODO: SHOULD NOT BE NEEDED:
     P = np.maximum(P, np.zeros_like(P))
-    #P = 0.01 * P  # Units: Convert pressure back to g cm-1 us-2
-    #P = 0.1 * P # Units: Convert pressure back to g mm-1 us-2
 
-    F[1] = U[0] * (u ** 2) + P  # rho * u^2 + p  (g cm-2 us-2)
+    F[1] = U[0] * (u ** 2) + P  # rho * u^2 + p  (g mm-2 us-2)
     # print(f'F[1] = {F[1]}')
 
-    F[2] = F[0] * (E + u ** 2 / 2.0 + P / U[0])  # (g cm-1 us-3)
+    F[2] = F[0] * (E + u ** 2 / 2.0 + P / U[0])  # (g mm-1 us-3)
 
     pp = (u, E, PHI, LAMBD, V, P)
     if 0:
         print('-')
         print('-')
-        print(f'F[1] = {F[1] }')
-        print(f'U[0] = {U[0] }')
-        print(f'U[1] = {U[1] }')
+        print(f'F[1] = {F[1]}')
+        print(f'U[0] = {U[0]}')
+        print(f'U[1] = {U[1]}')
         print(f'P = {P}')
         print(f'u= {u }')
 
@@ -306,38 +294,15 @@ def BC(U, x, t=None):
    # return U
     if 1:
         #print(f'U before = {U}')
-        for ind in range(3):  # dim=3
+        for ind in range(5):
             U[ind, 0:gc] = U[ind, gc]#.T
+            #U[ind, 0:gc] = 0.0#.T
             #U[ind, 0:gc] = U[ind, (gc + 1)]#.T
             #U[ind, 0:gc] = 0.0
             U[ind, -gc:] = U[ind, -(gc+1)]#.T
             #U[ind, -gc:] = 0.0
         #print(f'U after BC = {U}')
 
-    # Exact boundary conditions
-    if 0:
-        p = 1
-        rho = 1 + 0.2 * np.sin(np.pi * (x - t))
-        u = 1
-        E = p / (gamma - 1) + 0.5 * rho * u ** 2
-
-        exact = np.array([rho,
-                         rho*u,
-                         E])
-
-        #print(f'exact = {exact}')
-        #print(f'exact.shape = {exact.shape}')
-        for ind in range(3):  # dim=3
-            #print(f'exact[{ind}] = {exact[ind]}')
-            #print(f'exact[ind, 0:gc] = {exact[ind, 0:gc]}')
-            #print(f'exact[ind, -gc:] = {exact[ind, -gc:]}')
-
-            U[ind, 0:gc] = exact[ind, 0:gc]#.T
-            #U[ind, 0:gc] = 0.0
-            U[ind, -gc:] = exact[ind, -gc:]#.T
-            #U[ind, -gc:] = 0.0
-        #print(f'U in BC = {U}')
-        return U
 
     # Periodic boundary conditions
     if 0:
@@ -407,6 +372,8 @@ def plot_all_results(Usol, x, t):
     # Res[2] = velocity  #
     # Res[3] = Phi
     # Res[4] = lambda
+    prog_bar = IncrementalBar('Finished simulation. '
+                              'Computing plot variables...', max=len(t))
     for tind, time in enumerate(t):
         U = Usol[tind, :, :]
 
@@ -420,9 +387,10 @@ def plot_all_results(Usol, x, t):
         Res[tind, 2, :] = u
         Res[tind, 3, :] = PHI
         Res[tind, 4, :] = LAMBD
+        prog_bar.next()
 
 
-    Pressure_plot = np.minimum(Res[:, 0, :]*1e3, np.ones_like(Res[:, 0, :])*500)
+    Pressure_plot = np.minimum(Res[:, 0, :]*1e3, np.ones_like(Res[:, 0, :])*50)
     plot_u_t(x, t, Pressure_plot,
                   #title=r'Pressure $P$ (GPa) $\times 10^{-3}$', fign=0)
                   title=r'Pressure $P$ (GPa)', fign=0)
@@ -433,7 +401,8 @@ def plot_all_results(Usol, x, t):
                   title=r'Density $\rho$ (g/cm$^3$)', fign=1)
 
     Velocity_plot = np.minimum(Res[:, 2, :], np.ones_like(Res[:, 0, :])*5)
-    plot_u_t(x, t, Res[:, 2, :],
+    Velocity_plot = np.maximum(Velocity_plot, np.ones_like(Res[:, 0, :])*-5)
+    plot_u_t(x, t,  Velocity_plot,
                   title=r'Velocity $u$ (mm . $\mu$ s$^{-1}$)', fign=2)
 
     plot_u_t(x, t, Res[:, 3, :],
@@ -454,7 +423,9 @@ def plot_u_t(x, t, U, title=r'Density $\rho$ (g/mm$^3$)', fign=1):
     x = x  # mm
     plt.figure(fign)
     plt.plot()
-    plt.pcolor(x, t, U, cmap='RdBu')
+    #plt.pcolor(x, t, U, cmap='RdBu')
+    #plt.pcolor(x, t, U, cmap='inferno')
+    plt.pcolor(x, t, U, cmap='hot')
     plt.colorbar()
     plt.title(title)
     plt.xlabel('x (mm)')

@@ -11,9 +11,10 @@ L = 0.1  # 0.10 mm # Length of the tube
 # WENO (DO NOT CHANGE UNTIL INITS ARE INVARIANT)
 N = 120  # Number of discrete spatial elements
 #N = 1000  # Number of discrete spatial elements
-N = 100  # Number of discrete spatial elements
+N = 50  # Number of discrete spatial elements
+N = 40  # Number of discrete spatial elements
 N = 80  # Number of discrete spatial elements
-N = 20  # Number of discrete spatial elements
+#N = 40  # Number of discrete spatial elements
 #N = 200  # Number of discrete spatial elements
 #N = 200  # Number of discrete spatial elements
 k = 3  # number of weights Order= 2*k-1
@@ -62,9 +63,6 @@ b = 0.80
 P_h = 0.07*1e-3  # g mm-1 us-2
 #k_phi = 31.5  # GPa-1 us-1
 k_phi = 31.5*1e3  # g mm-1 us-2 us-1
-# A lost parameter
-#p_c = 1.5899  # GPa
-p_c = 1.5899*1e-3  # g mm-1 us-2
 p_ign = p_c  # GPa TODO: It is assumed that Table II of the paper implies this
 #p_ign = 0.1  # GPa TODO: This if from the paper Xu Stewart '97
 #p_cj = 1  # GPa TODO: Find0
@@ -97,6 +95,14 @@ if 0:
 e_0_guess = 7.07  # kJ / cm3 Initial guess for starting internal energy
 e_0_guess = 3.731  # kJ / g  (Wescott(?))
 e_0_guess = 0.027   # kJ / g  (Wescott(?))
+
+e_0_guess = 1.89   # kJ / g  (Wescott(?))
+e_0_guess = 5.71   # kJ / g  q?
+
+e_0_guess = 0.2957648   # kJ / g  From Cv
+e_0_guess = 5.71  # kJ / g  From Cv
+e_0_guess = 0.2957648  # kJ / g  From Cv
+#e_0_guess = 1.89e-3   # kJ / g  (Wescott(?))
 #e_0_guess = 3.98329  # kJ / cm3 Initial guess for starting internal energy
 e_0 = e_0_guess  # NOTE: This value is computed in ddt.py initialization
                  #  e(p_0, v_0, lambd_0, phi_0) =  3.983295207817231
