@@ -26,22 +26,11 @@ from progress.bar import IncrementalBar
 def r_phi(p, phi):  # units validated
     """
     Compaction rate (equation 20)
-    :param p: Pressure (originally in GPa)
+    :param p: Pressure (GPa)
     :param phi: Porosity
     :return: r_phi  # compaction rate in us-1
     """
     #return 0.0
-    P_h = 0.07  # GPa
-    # P_h = 0.07 * 1e-3  # g mm-1 us-2
-
-    # p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
-    # p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
-    p_0 = 1.01325e-07  # GPa   (equivalent to 1 atmosphere)
-
-    k_phi = 31.5  # GPa-1 us-1
-    # k_phi = 31.5 * 1e3  # g mm-1 us-2 us-1
-
-    p = 1e3  * p # mm-1 us-2 --> GPa
     rate_phi = k_phi * (p - p_0 - P_h * (1 - np.sqrt((phi_0*(1 - phi))
                                                      / (phi*(1 - phi_0))
                                                      )
@@ -458,15 +447,6 @@ def plot_u_t(x, t, U, title=r'Density $\rho$ (g/mm$^3$)', fign=1):
     #plt.show()
 
 if __name__ == "__main__":
-    # Compute e_0
-    if 0:
-        y_lim = y(phi_0*v_0)
-        INT = integrate.quad(p_s_r_y, 0, y_lim)
-        e_0 = -v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(p_0/phi_0
-                                                              -p_s_r(phi_0*v_0))
-
-
-
     solver = WRKR(f, s, N=N, x0=0.0, xf=L, t0=0.0,
                   #tf=tf, #dt=0.5*tf,
                   tf=tf, #dt=0.5*tf,

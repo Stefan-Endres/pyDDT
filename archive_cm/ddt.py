@@ -26,22 +26,11 @@ from progress.bar import IncrementalBar
 def r_phi(p, phi):  # units validated
     """
     Compaction rate (equation 20)
-    :param p: Pressure (originally in GPa)
+    :param p: Pressure (
     :param phi: Porosity
     :return: r_phi  # compaction rate in us-1
     """
     #return 0.0
-    P_h = 0.07  # GPa
-    # P_h = 0.07 * 1e-3  # g mm-1 us-2
-
-    # p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
-    # p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
-    p_0 = 1.01325e-07  # GPa   (equivalent to 1 atmosphere)
-
-    k_phi = 31.5  # GPa-1 us-1
-    # k_phi = 31.5 * 1e3  # g mm-1 us-2 us-1
-
-    p = 1e3  * p # mm-1 us-2 --> GPa
     rate_phi = k_phi * (p - p_0 - P_h * (1 - np.sqrt((phi_0*(1 - phi))
                                                      / (phi*(1 - phi_0))
                                                      )
@@ -74,7 +63,7 @@ def r_lambda(p, lambd):  # units validated
         print(f'(p/p_cj)**mu = {(p/p_cj)**mu}')
         print(f'(1 - lambd)**upsilon= {(1 - lambd)**upsilon}')
     rate_lambda = np.nan_to_num(rate_lambda)  #TODO: SHOULDN'T NEED THIS!!!
-    return rate_lambda
+    return rate_lambda #*0.1
 
 
 def p_v(energy, lambd, phi, guess):
@@ -136,11 +125,11 @@ def init_cond(x=None, gc=2, printout=True):
 
     # Unit conversions
     #E_0 = 0.01 * e_0  # kJ g-1 --> 0.01 cm2 us-2
-    E_0 = e(p_0, v_0, lambd_0, phi_0)  #
+    E_0 = e(p_0_wr, v_0_wr, lambd_0, phi_0)  #  cm2 us-2
+    E_0 = 1e2 * E_0  #  cm2 us-2  --> mm2 us-2
 
     # Initialize U container
     U_0 = np.zeros([5, x.size + 2 * gc])  # weno
-
 
     # Density
     U_0[0] = rho_0  # g/mm3 # Initial density 'rho' in tube
@@ -227,20 +216,33 @@ def f(U):
     F[3] = F[0] * PHI  # 'rho * u * phi'  # also U[1] * U[3]/U[0]
     F[4] = F[0] * LAMBD  # 'rho * u * Lambd'  # also U[1] * U[4]/U[0]
 
+    ############################################################################
     # Compute the pressure
+    ############################################################################
     # Compute the specific volume from the density
     V = U[0] ** (-1)  # specific volume (mm3 g-1)
+    V = 1e-3 * V  # mm3 g-1 --> cm3 g-1
+
+    E = 1e-2 * E  # mm2 us-2 --> cm2 us-2
+
     # TODO: Try to vectorize
     ## P = p_from_e(E, V, LAMBD, PHI)
     P = np.zeros(np.shape(U)[1])
+
+
     for ind in range(np.shape(U)[1]):  # TODO: Extremely slow
         P[ind] = p_from_e(E[ind], V[ind], LAMBD[ind], PHI[ind])
         #P[ind] = p_from_e_no_reaction(E[ind], V[ind], PHI[ind])
-    # print(f'P = {P}')
+
+    V = 1e3 * V  # mm3 g-1 --> cm3 g-1
+    E = 1e2 * E  # cm2 us-2 --> mm2 us-2
 
     #TODO: SHOULD NOT BE NEEDED:
     P = np.maximum(P, np.zeros_like(P))
+    #P = 1e-3 * P  # GPa --> g mm-1 us-2
+    P = 1e-1 * P  # g cm-1 us-2 --> g mm-1 us-2
 
+    ############################################################################
     F[1] = U[0] * (u ** 2) + P  # rho * u^2 + p  (g mm-2 us-2)
     # print(f'F[1] = {F[1]}')
 
@@ -458,15 +460,6 @@ def plot_u_t(x, t, U, title=r'Density $\rho$ (g/mm$^3$)', fign=1):
     #plt.show()
 
 if __name__ == "__main__":
-    # Compute e_0
-    if 0:
-        y_lim = y(phi_0*v_0)
-        INT = integrate.quad(p_s_r_y, 0, y_lim)
-        e_0 = -v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(p_0/phi_0
-                                                              -p_s_r(phi_0*v_0))
-
-
-
     solver = WRKR(f, s, N=N, x0=0.0, xf=L, t0=0.0,
                   #tf=tf, #dt=0.5*tf,
                   tf=tf, #dt=0.5*tf,

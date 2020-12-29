@@ -8,11 +8,11 @@ from params import *
 def e(p, v, lambd, phi):
     """
     A combination of Equations 16 and 17
-    :param p: pressure
+    :param p: pressure (GPa)
     :param v: specific volume (cm3 g-1)
     :param lambd: Reaction progression \in [0, 1]
     :param phi: Porosity
-    :return: e (kJ g-1  ?)
+    :return: e (cm2 us-2)
     """
     # First compute the volumes (Equation 16)
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
@@ -39,8 +39,7 @@ def volumes(v, lambd, phi):
     v_p_g = Phi_g * v_ps_g  # Initial guess value for v_p
     #TODO: Update routine to use previous values in the element as guess
     x0 = [v_p_g, v_ps_g, v_r_g, Phi_g]
-    #x0 = np.array(x0) - 1e-2
-   # x0 = np.array(x0) - 1e-1
+    x0 = np.array(x0) - 1e-2
     def system(x):
         v_p, v_ps, v_r, Phi = x
         return [v_p - (v / denom(lambd, Phi)),
@@ -63,20 +62,22 @@ def volumes(v, lambd, phi):
 def p_from_e(e, v, lambd, phi):
     """
     Compute the pressure, given energy, volume, lambd and phi
-    :param e: energy
-    :param v: specific volume
+    :param e: energy (cm2 us-2)
+    :param v: specific volume (cm3 g-1)
     :param lambd: reaction progress
     :param phi: porosity
-    :return: p, pressure
+    :return: p, pressure  (g cm-1 us-2)
     """
     v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
 
-    gam_p = gamma_p(v_p)
-    gam_r = gamma_r(v_r)
-    e_s_p_vp = e_s_p(v_p)
-    e_s_r_vr = e_s_r(v_r)
-    p_s_r_vr = p_s_r(v_r)
-    p_s_p_vp = p_s_p(v_p)
+
+    gam_p = gamma_p(v_p)  # (-)
+    gam_r = gamma_r(v_r)  # (-)
+    e_s_p_vp = e_s_p(v_p)  #  (cm2 us-2)
+    e_s_r_vr = e_s_r(v_r)  #  (cm2 us-2)
+    #p_s_r_vr = p_s_r(v_r) * 0.01  # (g cm-1 us-2)
+    p_s_r_vr = p_s_r(v_r)  # (g cm-1 us-2)
+    p_s_p_vp = p_s_p(v_p)  # (g cm-1 us-2)
     P = phi*(gam_p*gam_r*e
              - gam_p*gam_r*e_s_p_vp*lambd
              + gam_p*gam_r*e_s_r_vr*lambd
@@ -96,7 +97,7 @@ def p_from_e_no_reaction(e, v, phi, lambd=0):
     :param v: specific volume, mm3/g
     :param lambd: reaction progress, must be 0.0
     :param phi: porosity, -
-    (e_0, v_0, lambd_0, phi_0
+    (e_0, v_0_wr, lambd_0, phi_0
 
     """
     #v_p, v_ps, v_r, Phi = volumes(v, lambd, phi)
@@ -118,7 +119,7 @@ def p_from_e_no_reaction(e, v, phi, lambd=0):
 
 def e_i(p, v, lambd, phi):
     """
-    Compute the initial energy, given p_0, v_0, lambd_0 and phi_0
+    Compute the initial energy, given p_0, v_0_wr, lambd_0 and phi_0
     :param p:
     :param v:
     :param lambd:
@@ -152,8 +153,8 @@ def p_p(e, v):
 def p_s_p(v):
     """
     Equation A3
-    :param v: specific volume
-    :return:
+    :param v: specific volume (cm3 g-1)
+    :return:  units of p_c (g cm-1 us-2)
     """
     return p_c * ((0.5*(v/v_c)**n + 0.5*(v/v_c)**(-n))**(a/n)
                   / ((v/v_c)**(k_wr + a))) * ((k_wr - 1 + F_wr(v))/
@@ -181,15 +182,16 @@ def gamma_p(v):
 def e_s_p(v):
     """
     Equation A6
-    :param v: specific volume
-    :return: e_s_p
+    :param v: specific volume  (m^3/g)
+    :return: e_s_p  (cm2 us-2)
     """
     return e_c * ((0.5*(v/v_c)**n + 0.5*(v/v_c)**(-n))**(a/n)
                   / ((v/v_c)**(k_wr - 1 + a)))
 
 # Equation A7
 if 1:
-    e_c = (p_c * v_c) / (k_wr - 1 + a)
+    # (g cm-1 us-2) * (cm3 g-1) / (-)  = cm2 us-2
+    e_c = (p_c * v_c) / (k_wr - 1 + a)  # cm2 us-2
 
 
 """Detonation reactants"""
@@ -197,12 +199,13 @@ if 1:
 def e_r(p, v):
     """
     Equation A8 reactant energy
-    :param p: pressure
-    :param v: specific volume
-    :return: energy e_p
+    :param p: pressure (GPa)
+    :param v: specific volume (cm3 g-1)
+    :return: energy e_r
     """
+    p = 0.01 * p  # GPa --> g cm-1 us-2  # TODO: CHECK!
+    #return e_s_r(v) + (v/gamma_r(v))*(p - p_s_r(v) * 0.01)
     return e_s_r(v) + (v/gamma_r(v))*(p - p_s_r(v))
-
 
 def p_r(e, v):
     """
@@ -217,7 +220,7 @@ def p_r(e, v):
 def p_s_r(v):
     """
     Equation A10
-    :param v: specific volume
+    :param v: specific volume (cm3 g-1)
     """
     sigma_j = 0
     for j in range(1, 4):
@@ -229,18 +232,26 @@ def p_s_r(v):
 
 
 def y(v):
-    return max(0, 1 - v/v_0)
+    #return 1 - v/v_0_wr
+    return max(1 - v / v_0_wr, 0)
 
 if 1:
-    #pp_hat = rho_0 * A**2 / (4 * B)  # Units here are are mixed (g/cm3) * (mm/us)*2
-    #p_hat = rho_0 * 0.01 * A**2 / (4 * B)  # (g/cm3) * (cm/us)*2  = g cm-1 us-2
+    #p_hat = rho_0 * A**2 / (4 * B)  # Units here are are mixed (g/cm3) * (mm/us)*2
+    # p_hat = rho_0 * 0.01 * A**2 / (4 * B)  # (g/cm3) * (cm/us)*2  = g cm-1 us-2
 
-    p_hat = rho_0 * A ** 2 / (4 * B)  # (g/mm3) * (mm/us)*2  = g mm-1 us-2
-
+    p_hat = rho_0_wr * 0.01 * A ** 2 / (4 * B)  # (g/mm3) * (mm/us)*2  = g mm-1 us-2
+    #p_hat = rho_0_wr * A**2 / (4 * B)
 
 def p_s_r_y(y):
     """
-    Equation for integral
+    Equation for integral of p_s_r_y
+
+    The return is the same units as "p_hat" (= g cm-1 us-2)
+    Note that even if it was assumed that the "B" parameter was tuned to GPa
+    then there is still no pressure input outside of the first p_hat multiple
+
+    #TODO: TEST THIS BY CHANGING  BACK TO UNITS THEN MULTIPLYING THE RESULTING
+           INTEGAL IN e_s_r FUNCTION
     """
     sigma_j = 0
     for j in range(1, 4):
@@ -255,17 +266,18 @@ def p_s_r_y(y):
 def e_s_r(v):
     """
     Equation A11
-    :param v: specific volume
-    :return:
+    :param v: specific volume  (cm3 g-1)
+    :return:  (cm2 us-2)
     """
 
-    if v >= v_0:
-        print(f"WARNING: v[={v}] >= v_0[={v_0}]")
+    if v >= v_0_wr:
+        print(f"WARNING: v[={v}] >= v_0_wr[={v_0_wr}]")
     y_lim = y(v)
     INT = integrate.quad(p_s_r_y, 0, y_lim)
     if INT[1] >= 1e-1:
         print(f"WARNING: Integral error in e_s_r is high {INT}")
-    return v_0 * INT[0] + e_0  #TODO: Check
+    return v_0_wr * INT[0] + e_0  # TODO: Check
+    #return v_0_wr * 0.01 * INT[0] + e_0  #TODO: Check
 
 
 def gamma_r(v):
@@ -295,49 +307,49 @@ if __name__ == '__main__':
     print(f'e_0_test should be equal to param e_0 = {e_0}')
 
     # TODO: Build a test suite
-    e_0_test = e(p_0, v_0, lambd_0, phi_0)  # Compute e_0
+    e_0_test = e(p_0, v_0_wr, lambd_0, phi_0)  # Compute e_0
     #print(f'e_0_test out = {e_0}')
-    print(f'e_0_test = e(p_0, v_0, lambd_0, phi_0) = {e_0_test}')
-    print(f'e(0.0, v_0, lambd_0, phi_0) = {e(0.0, v_0, lambd_0, phi_0)}')
-    #print(f'p_r(p_0, v_0) = {p_r(p_0, v_0)}')
-    print(f'p_from_e(e_0, v_0, lambd_0, phi_0)'
-          f'= {p_from_e(e_0, v_0, lambd_0, phi_0)}')
-    print(f'p_from_e_no_reaction(e_0, v_0, phi_0)'
-          f'= {p_from_e_no_reaction(e_0, v_0, phi_0)}')
+    print(f'e_0_test = e(p_0, v_0_wr, lambd_0, phi_0) = {e_0_test}')
+    print(f'e(0.0, v_0_wr, lambd_0, phi_0) = {e(0.0, v_0_wr, lambd_0, phi_0)}')
+    #print(f'p_r(p_0, v_0_wr) = {p_r(p_0, v_0_wr)}')
+    print(f'p_from_e(e_0, v_0_wr, lambd_0, phi_0)'
+          f'= {p_from_e(e_0, v_0_wr, lambd_0, phi_0)}')
+    print(f'p_from_e_no_reaction(e_0, v_0_wr, phi_0)'
+          f'= {p_from_e_no_reaction(e_0, v_0_wr, phi_0)}')
     print('=' * 13)
     print(f'Test p_from_e')
     print('=' * 13)
     #print(f'P should be 1.0e-9 ')
     print(f'P should be {p_0}: ')
-    P = p_from_e(e_0_test, v_0, lambd_0, phi_0)
-    P2 = p_from_e_no_reaction(e_0_test, v_0, phi_0)
-    print(f'p_from_e(e_0_test, v_0, lambd_0, phi_0)= {P}')
-    print(f'p_from_e_no_reaction(e_0_test, v_0, phi_0) = {P2}')
-    #P_p = p_p(e_0_test, v_0*phi_0*0.01)
-    P_p = p_p(e_0_test, v_0)
-    print(f'p_p(e_0_test, v_0) = {P_p}')
+    P = p_from_e(e_0_test, v_0_wr, lambd_0, phi_0)
+    P2 = p_from_e_no_reaction(e_0_test, v_0_wr, phi_0)
+    print(f'p_from_e(e_0_test, v_0_wr, lambd_0, phi_0)= {P}')
+    print(f'p_from_e_no_reaction(e_0_test, v_0_wr, phi_0) = {P2}')
+    #P_p = p_p(e_0_test, v_0_wr*phi_0*0.01)
+    P_p = p_p(e_0_test, v_0_wr)
+    print(f'p_p(e_0_test, v_0_wr) = {P_p}')
     print('='*100)
     print(f'New test e should be ?:')
-    e_out = e(P, v_0, lambd_0, phi_0)
-    print(f'e(P, v_0, lambd_0, phi_0)= {e_out}')
+    e_out = e(P, v_0_wr, lambd_0, phi_0)
+    print(f'e(P, v_0_wr, lambd_0, phi_0)= {e_out}')
     print('='*100)
 
-    y_lim = y(phi_0*v_0)
+    y_lim = y(phi_0*v_0_wr)
     INT = integrate.quad(p_s_r_y, 0, y_lim)
     print(f'INT = {INT[0]}')
-    print(f'y(phi_0*v_0) = {y(phi_0*v_0)}')
-    print(f'v_0 * INT = {v_0 * INT[0]}')
-    print(f'p_s_r(phi_0*v_0) = {p_s_r(phi_0*v_0)}')
-    print(f'gamma_r(phi_0*v_0) = {gamma_r(phi_0*v_0)}')
-    print(f'v_0= {v_0}')
-    print(f'phi_0*v_0 =  {phi_0*v_0}')
+    print(f'y(phi_0*v_0_wr) = {y(phi_0*v_0_wr)}')
+    print(f'v_0_wr * INT = {v_0_wr * INT[0]}')
+    print(f'p_s_r(phi_0*v_0_wr) = {p_s_r(phi_0*v_0_wr)}')
+    print(f'gamma_r(phi_0*v_0_wr) = {gamma_r(phi_0*v_0_wr)}')
+    print(f'v_0_wr= {v_0_wr}')
+    print(f'phi_0*v_0_wr =  {phi_0*v_0_wr}')
 
 
-    print(f'-v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(p_0/phi_0 -p_s_r(phi_0*v_0))'
-          f'= {-v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(p_0/phi_0 -p_s_r(phi_0*v_0))}')
+    print(f'-v_0_wr * INT[0] - ((phi_0*v_0_wr)/gamma_r(phi_0*v_0_wr))*(p_0/phi_0 -p_s_r(phi_0*v_0_wr))'
+          f'= {-v_0_wr * INT[0] - ((phi_0*v_0_wr)/gamma_r(phi_0*v_0_wr))*(p_0/phi_0 -p_s_r(phi_0*v_0_wr))}')
 
-    #print(f'-v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(0.0/phi_0 -p_s_r(phi_0*v_0))'
-    #      f'= {-v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(0.0/phi_0 -p_s_r(phi_0*v_0))}')
+    print(f'-v_0_wr * INT[0] - ((phi_0*v_0_wr)/gamma_r(phi_0*v_0_wr))*(0.0/phi_0 -p_s_r(phi_0*v_0_wr))'
+          f'= {-v_0_wr * INT[0] - ((phi_0*v_0_wr)/gamma_r(phi_0*v_0_wr))*(0.0/phi_0 -p_s_r(phi_0*v_0_wr))}')
 
 
 

@@ -27,8 +27,8 @@ class WRKR():
                 # self.dt = 0.5* (self.dx) ** (5 / 4.0) #* 0.1
                 self.dt = 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
                 #self.dt = 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
-              #  self.dt = 0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
-                #self.dt = 0.5*0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+               # self.dt = 0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+               # self.dt = 0.5*0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
                 #self.dt = 0.05 * (self.dx) ** (5 / 3.0) #* 0.1
         else:
             self.dt = dt
@@ -43,8 +43,9 @@ class WRKR():
         self.k = k
         # WENO Schemes:
         self.gc = k - 1  # number of ghost cells
+        #self.gc = 50  # number of ghost cells
         gc = self.gc
-
+        #print(f'gc = {gc}')
         #TODO: Expand this to multiple dimensions
         gcr = self.x[-1] + np.linspace(1, gc, gc) * self.dx
         gcl = self.x[0] + np.linspace(-gc, -1, gc) * self.dx
@@ -56,8 +57,8 @@ class WRKR():
         self.flux = np.zeros(self.N + 2 * gc)
         self.c = 1  #TODO: TEMP
 
-        print(f'self.xc = {self.xc}')
-        print(f'self.xc.shape = {self.xc.shape}')
+        #print(f'self.xc = {self.xc}')
+        #print(f'self.xc.shape = {self.xc.shape}')
 
 
 
@@ -154,6 +155,7 @@ class WRKR():
         # Boundary conditions, if any:
         if self.flux_bc is not None:
             dFdx = self.flux_bc(dFdx, self.xc, self.gc, t=t)
+            #self.flux[:, 0] = -(f_i_p1_2[:, 1] - f_i_p1_2[:, 0])
 
         #print(f'dFdx = {dFdx}')
         return dFdx/self.dx
@@ -343,7 +345,9 @@ class WRKR():
                 plt.show()
 
         prog_bar.finish()
-        sol = self.U_0_sol[:, :, self.gc:-(self.gc)]  # All rows, but exclude column of ghost cells
+        #sol = self.U_0_sol[:, :, self.gc:-(self.gc)]  # All rows, but exclude column of ghost cells
+        sol = self.U_0_sol  # All rows, but exclude column of ghost cells
+
         return U, sol
 
     def euler(self, U_0):
