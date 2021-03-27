@@ -23,13 +23,13 @@ N = 50  # Number of discrete spatial elements
 N = 40  # Number of discrete spatial elements
 N = 80  # Number of discrete spatial elements
 N = 100  # Number of discrete spatial elements
-N = 40  # Number of discrete spatial elements
 #N = 200  # Number of discrete spatial elements
 k = 3  # number of weights Order= 2*k-1
 gc = k - 1  # number of ghost cells
 
 # parameters
-
+#phi_0 = 0.75  # 0.65
+phi_0 = 0.8125
 #u_0 = -1.0  # mm/us (0.1 cm/us  = 1.0 mm/us) Initial velocity in the x-direction
 u_0_1 = 0.0  # mm # Pellet velocity relative to bulk
 
@@ -41,18 +41,9 @@ u_0 = -0.475  # mm/us
 p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
 #rho_0 = 1.32*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
 rho_0 = 1.43*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
-rho_0 = 1.43*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
-rho_0 = 0.88* 1.76 *1e-3  # g/mm^3 # rho_0 = TMD * Phi_0 = 0.88*1.76 Initial density g/cm3
 v_0 = (rho_0)**(-1)  # mm3/g  Assume experimental condition
 #alculated the initial density to be 1430kg/m3
 #That's a 80.3 %of the tmd
-
-#phi_0 = 0.75  # 0.65
-#phi_0 = 0.8125
-TMD = 1.76*1e-3  # g/mm^3
-#phi_0 = 1 - rho_0/TMD   # 1 - rho_bulk/rho_pellet
-phi_0 = rho_0/TMD   # 1 - rho_bulk/rho_pellet
-print(f'phi_0 = {phi_0}')
 #v_0 = (1.76*1e-3)**(-1)  # mm3/g  Assume experimental condition
 lambd_0 = 0  # Initial reaction progress
              # Ratio of mass products / total mass of a volume element
@@ -64,7 +55,7 @@ C = 0.70  # -
 Z = -0.8066  # -
 gamma_0_r = 1.22  # -
 #q = 5.71  # kJ/g
-#TMD = 1.76*1e-3  # g/mm^3
+TMD = 1.76*1e-3  # g/mm^3
 #C_v = 992.0  # J / kg K
 # Calibrated parameters for the product WR-EOS
 a = 0.7579
@@ -89,23 +80,10 @@ p_ign = p_c  # # g mm-1 us-2 TODO: It is assumed that Table II of the paper impl
 #p_ign = 0.1  # GPa TODO: This if from the paper Xu Stewart '97
 #p_cj = 1  # GPa TODO: Find0
 #p_cj = 15.928*1e-3  # g mm-1 us-2
-#p_cj = 19.05*1e-3  # g mm-1 us-2
+p_cj = 19.05*1e-3  # g mm-1 us-2
 
 #p_cj = 20.5*1e-3  # g mm-1 us-2  at a detonation vel ~7.24 mm us−1
 #p_cj = 1.1*15.928*1e-3  # g mm-1 us-2
-
-# Data for interpolation:
-RHO_0 = [0.2, 0.24, 0.25, 0.287, 0.48, 0.885, 0.93, 0.95, 0.99, 1.23, 1.38,
-         1.45, 1.53, 1.597, 1.703, 1.762, 1.77]  # g / cm3
-Det_v = [1.2, 0.93, 2.83, 2.95, 3.6, 5.08, 5.26, 5.33, 5.48, 6.368, 6.91,
-         7.18, 7.49, 7.737, 8.082, 8.27, 8.27]  # km/s
-P_CJ_L = [0.06, 0.051, 0.7, 1.1, 2.4, 6.95, 7.33, 8.5, 8.7, 13.87, 17.3, 20.17,
-          22.5, 26.37, 30.75, 33.7, 33.5]  # GPa
-RHO_CJ = [0.253, 0.318, 0.384, 0.513, 0.782, 1.272, 1.300, 1.387, 1.400, 1.704,
-          1.871, 1.986, 2.074, 2.205, 2.354, 2.446, 2.447]  # g / cm3
-#np.interp(x, xr, yr)
-p_cj = np.interp(rho_0, RHO_0, P_CJ_L) * 1e-3   # g mm-1 us-2
-
 """
 p_cj was interpolated from data for PETN (TABLE 20.1 in unknown textbook)
                         # Detonations, general observations
@@ -156,19 +134,9 @@ e_0_guess = 3.301014946420688  # kJ / g assuming e(_0) = 0 and solving e_0
 
 # rho_0 = 1.43*1e-3
 e_0_guess = 1.892476153028025  # kJ / g
-#e_0_guess = 1.892476153028025  # kJ / g
 
 e_0 = e_0_guess  # NOTE: This value is computed in ddt.py initialization
                  #  e(p_0, v_0, lambd_0, phi_0) =  3.983295207817231
-
-# RUN wreos.py to find new e_0!
-
-e_0_guess = 1.8924812383735754 # kJ / g
-e_0_guess = 1.89249 # kJ / g
-e_0_guess = 399.3759467756165
- # kJ / g
-
-e_0 = e_0_guess
 
 # Parameters correlated to an initial porosity
 def k_function(phi_0):  # Validated correct against paper values (Table IV)

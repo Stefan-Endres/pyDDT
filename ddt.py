@@ -409,18 +409,18 @@ def plot_all_results(Usol, x, t):
         prog_bar.next()
 
 
-    Pressure_plot = np.minimum(Res[:, 0, :]*1e3, np.ones_like(Res[:, 0, :])*50)
+    Pressure_plot = np.minimum(Res[:, 0, :]*1e3, np.ones_like(Res[:, 0, :])*300)
     plot_u_t(x, t, Pressure_plot,
                   #title=r'Pressure $P$ (GPa) $\times 10^{-3}$', fign=0)
                   title=r'Pressure $P$ (GPa)', fign=0)
 
-    Density_plot = np.minimum(Res[:, 1, :]*1e3, np.ones_like(Res[:, 0, :])*5)
+    Density_plot = np.minimum(Res[:, 1, :]*1e3, np.ones_like(Res[:, 0, :])*20)
     plot_u_t(x, t, Density_plot,
                   #title=r'Density $\rho$ (g/mm$^3$)', fign=1)
                   title=r'Density $\rho$ (g/cm$^3$)', fign=1)
 
-    Velocity_plot = np.minimum(Res[:, 2, :], np.ones_like(Res[:, 0, :])*5)
-    Velocity_plot = np.maximum(Velocity_plot, np.ones_like(Res[:, 0, :])*-5)
+    Velocity_plot = np.minimum(Res[:, 2, :], np.ones_like(Res[:, 0, :])*20)
+    Velocity_plot = np.maximum(Velocity_plot, np.ones_like(Res[:, 0, :])*-20)
     plot_u_t(x, t,  Velocity_plot,
                   title=r'Velocity $u$ (mm . $\mu$ s$^{-1}$)', fign=2)
 
