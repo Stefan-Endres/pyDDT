@@ -24,15 +24,17 @@ class WRKR():
         # Simulation
         if dt == None:
                 #self.dt =  (self.dx) ** (5 / 4.0) #* 0.1
-                # self.dt = 0.5* (self.dx) ** (5 / 4.0) #* 0.1
+                #     self.dt = 0.5* (self.dx) ** (5 / 4.0) #* 0.1
                 self.dt = 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
                 #self.dt = 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
-               # self.dt = 0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
-               # self.dt = 0.5*0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+              #         self.dt = 0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
+             #   self.dt = 0.5*0.5* 0.1* 0.5*0.5* (self.dx) ** (5 / 4.0) #* 0.1
                 #self.dt = 0.05 * (self.dx) ** (5 / 3.0) #* 0.1
         else:
             self.dt = dt
 
+        print(f'self.N = {self.N}')
+        print(f'self.dt = {self.dt}')
         self.t = np.arange(t0, tf, self.dt)
 
         # Initial conditions

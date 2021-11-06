@@ -5,19 +5,8 @@ import numpy as np
 """Initial conditions and simulation parameters"""
 # Simulation
 t0 = 0.0  # us (microseconds) # Simulation start time
-#tf = 0.025  # us (microseconds) # Simulation finish time
-tf = 0.1  # us (microseconds) # Simulation finish time
-tf = 0.002  # us (microseconds) # Simulation finish time
-tf = 0.0015  # us (microseconds) # Simulation finish time
-tf = 0.0007  # us (microseconds) # Simulation finish time
-if 1:
-    tf = 0.025
-#tf = 0.0000025  # us (microseconds) # Simulation finish time
+tf = 0.025  # us (microseconds) # Simulation finish time
 L = 0.1  # 0.10 mm # Length of the tube
-if 0:
-    L = 0.001  # 0.10 mm # Length of the tube
-#L = 0.002  # 0.10 mm # Length of the tube
-#L = 0.00001  # 0.10 mm # Length of the tube
 
 # WENO (DO NOT CHANGE UNTIL INITS ARE INVARIANT)
 N = 120  # Number of discrete spatial elements
@@ -25,46 +14,37 @@ N = 120  # Number of discrete spatial elements
 N = 50  # Number of discrete spatial elements
 N = 40  # Number of discrete spatial elements
 N = 80  # Number of discrete spatial elements
-N = 100  # Number of discrete spatial elements
-N = 40  # Number of discrete spatial elements
-N = 80  # Number of discrete spatial elements
-#N = 120  # Number of discrete spatial elements
-#N = 120  # Number of discrete spatial elements
-N = 150  # Number of discrete spatial elements
-N = 180  # Number of discrete spatial elements
+#N = 8  # Number of discrete spatial elements
+#N = 40  # Number of discrete spatial elements
+#N = 200  # Number of discrete spatial elements
+#N = 200  # Number of discrete spatial elements
+#N = 50  # Number of discrete spatial elements
+#N = 100  # Number of discrete spatial elements
+#N = 200 # Number of discrete spatial elements
+#N = 150 # Number of discrete spatial elements
+#N = 40 # Number of discrete spatial elements
+#N = 20 # Number of discrete spatial elements
 k = 3  # number of weights Order= 2*k-1
 gc = k - 1  # number of ghost cells
 
 # parameters
-
-#u_0 = -1.0  # mm/us (0.1 cm/us  = 1.0 mm/us) Initial velocity in the x-direction
+phi_0 = 0.75  # 0.65
+u_0 = -1.0  # mm/us (0.1 cm/us  = 1.0 mm/us) Initial velocity in the x-direction
 u_0_1 = 0.0  # mm # Pellet velocity relative to bulk
-
 # 375 m/s
 #u_0 = 0.434  # mm/us
-u_0 = -0.475  # mm/us
-if 1.0:
-    u_0 = -1.0  # mm/us
+#u_0 = 0.475  # mm/us
 
 #p_0 = 1.0e-9  # GPa (equivalent to 1 atmosphere)
 p_0 = 1.01325e-07  # mm-1 us-2  (equivalent to 1 atmosphere)
-if 1:
-    rho_0 = 1.32*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
-else:
-    rho_0 = 1.43*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
-    rho_0 = 1.43*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
-    rho_0 = 0.88* 1.76 *1e-3  # g/mm^3 # rho_0 = TMD * Phi_0 = 0.88*1.76 Initial density g/cm3
+#p_0 = 0.0  # mm-1 us-2  (equivalent to 1 atmosphere)
+#p_0 = 10e-4#e-9  # GPa (equivalent to 1 atmosphere)
+#rho_0 = 1.6  # Initial density g/cm3
+#rho_0 = 1.32  # g/cm3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
+rho_0 = 1.32*1e-3  #  g/mm^3 # rho_0 = TMD * Phi_0 = 0.75*1.76 Initial density g/cm3
 v_0 = (rho_0)**(-1)  # mm3/g  Assume experimental condition
-#alculated the initial density to be 1430kg/m3
-#That's a 80.3 %of the tmd
-
-#phi_0 = 0.75  # 0.65
-#phi_0 = 0.8125
-TMD = 1.76*1e-3  # g/mm^3
-#phi_0 = 1 - rho_0/TMD   # 1 - rho_bulk/rho_pellet
-phi_0 = rho_0/TMD   # 1 - rho_bulk/rho_pellet
-print(f'phi_0 = {phi_0}')
 #v_0 = (1.76*1e-3)**(-1)  # mm3/g  Assume experimental condition
+
 lambd_0 = 0  # Initial reaction progress
              # Ratio of mass products / total mass of a volume element
 
@@ -75,7 +55,7 @@ C = 0.70  # -
 Z = -0.8066  # -
 gamma_0_r = 1.22  # -
 #q = 5.71  # kJ/g
-#TMD = 1.76*1e-3  # g/mm^3
+TMD = 1.76*1e-3  # g/mm^3
 #C_v = 992.0  # J / kg K
 # Calibrated parameters for the product WR-EOS
 a = 0.7579
@@ -99,29 +79,10 @@ k_phi = 31.5*1e3  # g mm-1 us-2 us-1
 p_ign = p_c  # # g mm-1 us-2 TODO: It is assumed that Table II of the paper implies this
 #p_ign = 0.1  # GPa TODO: This if from the paper Xu Stewart '97
 #p_cj = 1  # GPa TODO: Find0
-#p_cj = 15.928*1e-3  # g mm-1 us-2
-#p_cj = 19.05*1e-3  # g mm-1 us-2
+p_cj = 15.928*1e-3  # g mm-1 us-2
 
 #p_cj = 20.5*1e-3  # g mm-1 us-2  at a detonation vel ~7.24 mm us−1
 #p_cj = 1.1*15.928*1e-3  # g mm-1 us-2
-
-# Data for interpolation:
-RHO_0 = [0.2, 0.24, 0.25, 0.287, 0.48, 0.885, 0.93, 0.95, 0.99, 1.23, 1.38,
-         1.45, 1.53, 1.597, 1.703, 1.762, 1.77]  # g / cm3
-Det_v = [1.2, 0.93, 2.83, 2.95, 3.6, 5.08, 5.26, 5.33, 5.48, 6.368, 6.91,
-         7.18, 7.49, 7.737, 8.082, 8.27, 8.27]  # km/s
-P_CJ_L = [0.06, 0.051, 0.7, 1.1, 2.4, 6.95, 7.33, 8.5, 8.7, 13.87, 17.3, 20.17,
-          22.5, 26.37, 30.75, 33.7, 33.5]  # GPa
-RHO_CJ = [0.253, 0.318, 0.384, 0.513, 0.782, 1.272, 1.300, 1.387, 1.400, 1.704,
-          1.871, 1.986, 2.074, 2.205, 2.354, 2.446, 2.447]  # g / cm3
-#np.interp(x, xr, yr)
-#p_cj = np.interp(rho_0, RHO_0, P_CJ_L) * 1e-3   # g mm-1 us-2  2021.10.16
-# (cm/10mm)^3  for  g mm-3 --> g cm-3
-
-p_cj = np.interp(rho_0, np.array(RHO_0) * 1e-3, P_CJ_L) * 1e-3   # g mm-1 us-2
-print(f'p_cj = {p_cj} (should be = 15.928*1e-3 for paper conditions)')
-#p_cj = 15.928*1e-3  # g mm-1 us-2
-print(f'p_cj (hand) = {p_cj}')
 """
 p_cj was interpolated from data for PETN (TABLE 20.1 in unknown textbook)
                         # Detonations, general observations
@@ -137,14 +98,6 @@ for TMD = 1.76  g / cm3
 p_cj ~ 33.7 GPa
 
 detonation velocity ~8.27 km/s (= mm/us)
-
-for rho_0 = 1.43   g / cm3
-
-(1.43 - 1.38) * (20.17 - 17.3 ) / (1.45 - 1.38) + 17.3 =  19.05 GPa
-
-(1.43 - 1.38) * (7.18 - 6.91) / (1.45 - 1.38) + 6.91 =  7.10285714285  (= mm/us)
-
-
 """
 
 """
@@ -168,26 +121,65 @@ e_0_guess = 0.2957648   # kJ / g  From Cv
 e_0_guess = 5.71  # kJ / g  From Cv
 e_0_guess = 0.2957648  # kJ / g  From Cv
 e_0_guess = 3.301014946420688  # kJ / g assuming e(_0) = 0 and solving e_0
-#e_0_guess = 330.10895708130874
+#e_0_guess = 3.3010903245948287  # kJ / g assuming e(_0) = 0 and solving e_0 with P_0=0
 
-# rho_0 = 1.43*1e-3
-e_0_guess = 1.892476153028025  # kJ / g
-#e_0_guess = 1.892476153028025  # kJ / g
+#e_0_guess = 2.475817743446121   # kJ / g assuming v_0 = TMD^-
+#e_0_guess = 2.475761209815515   # kJ / g assuming v_0 = TMD^-1
+#e_0_guess = 3.301014946420688 + 0.2957648  # kJ / g  From Cv
 
+# Parameter study on e_0
+if 0:
+    pass
+    # Need max(u) ~ 2.5 mm/us out, max(P) ~ 35 GPa, x (wave front) = 0.01cm
+    #e_0_guess = 4.0  # Failed simulation (too slow?)
+    #e_0_guess = 3.596779746420688  # slow ~ 1.2
+    #e_0_guess = 3.4  # slow 1.6, P = 22, x = 0.06
+    #e_0_guess = 3.35  # slow 1.6, P = 15, x = 0.06
+    #e_0_guess = 3.32  # slow 1.6, P = 22, x = 0.07
+    #e_0_guess = 3.31  # slow 1.5-1.6, P = 19, x = 0.08
+    #e_0_guess = 3.302  # slow 1.4-1.5, P = 26, x =0.09
+    #e_0_guess = 3.3012  # slow ~ 1.5, P = 26, x =0.09
+    #e_0_guess = 3.301014946420688  # slow~ 1.4-1.5, P = 26, x = 0.09
+    #e_0_guess = 3.300  #  slow~ 1.4-1.5, P = 26, x =0.09
+    #e_0_guess = 3.29  # fast ~1.9-2.0, P = 25, x= 0.09
+    #e_0_guess = 3.29  #fast  ~ 2.0, P = 25, x = 0.09
+    #e_0_guess = 3.27  #fast ~1.8, P = 25, x = 0.09
+    #e_0_guess = 3.25  # 1.6 P = 23, x = 0.09
+    #e_0_guess = 3.2  # slow 1.6, P = 20
+    #e_0_guess = 2.5  # slow 0.6, P = 12.5, x = 0.08
+
+
+# Parameter study on p_ign
+# Data:
+# u = 2.4, P = 38, x = 0.08 , phi_d1 = 0.04, t_lamb_x0 = 0.15-0.17
+if 0:
+    pass
+    #p_ign = 2.15 * (1.5899 * 1e-3)
+    # u = 1.1, P = 26, x = 0.03, phi_d1 = -, t_lamb_x0 = 0.02
+    #p_ign = 2.1 * (1.5899 * 1e-3)
+    # u = 1.1, P = 19, x = 0.06, phi_d1 = 0.03, t_lamb_x0 = 0.018
+    #p_ign = 2.05 * (1.5899 * 1e-3)
+    # u = 1.4, P = 19,  x = 0.065, phi_d1 = 0.025, t_lamb_x0 = 0.0175-0.018
+    #p_ign = 2*(1.5899 * 1e-3)
+    # u = 3, P = 40, x = 0.07, phi_d1 = 0.025, t_lamb_x0 = 0.014
+    #p_ign = 1.90*(1.5899 * 1e-3)
+    # u = 1.6, P = 21, x = 0.065, phi_d1 = 0.025, t_lamb_x0 = 0.015
+    #p_ign = 1.75*(1.5899 * 1e-3)
+    # u = 1.6, P = 24, x = 0.08 , phi_d1 = 0.015, t_lamb_x0 = 0.012
+    #p_ign = 1.5*(1.5899 * 1e-3)
+    # u = 1.5, P = 22, x = 0.085 , phi_d1 = 0.0175, t_lamb_x0 = 0.09
+    #p_ign = 1.1 * (1.5899 * 1e-3)
+    # u = 2, P = 26, x = 0.09 , phi_d1 = 0.014, t_lamb_x0 = 0.08
+
+#p_ign = 2.05 * (1.5899 * 1e-3)
+#e_0_guess = 3.2
+
+#e_0_guess = 3.731 - 0.2957648  # kJ / g  From Cv
+#e_0_guess = 1.89e-3   # kJ / g  (Wescott(?))
+#e_0_guess = 3.98329  # kJ / cm3 Initial guess for starting internal energy
 e_0 = e_0_guess  # NOTE: This value is computed in ddt.py initialization
                  #  e(p_0, v_0, lambd_0, phi_0) =  3.983295207817231
 
-# RUN wreos.py to find new e_0!
-
-e_0_guess = 1.8924812383735754  # kJ / g
-e_0_guess = 1.89249  # kJ / g
-e_0_guess = 399.3759467756165
-e_0_guess = 0.8909695564219196
-e_0_guess = 0.2957648  # 2021.10.16
-
- # kJ / g
-
-e_0 = e_0_guess
 
 # Parameters correlated to an initial porosity
 def k_function(phi_0):  # Validated correct against paper values (Table IV)
@@ -219,5 +211,3 @@ def upsilon_function(phi_0):
 k_r = k_function(phi_0)
 mu = mu_function(phi_0)
 upsilon = upsilon_function(phi_0)
-
-

@@ -8,6 +8,9 @@ WENO hints
 https://scicomp.stackexchange.com/questions/20054/implementation-of-1d-advection-in-python-using-weno-and-eno-schemes
 
 """
+import time
+import json
+import codecs
 import numpy as np
 from scipy import optimize
 from scipy.integrate import odeint
@@ -489,6 +492,24 @@ if __name__ == "__main__":
     #Ue, sole = solver.euler(U_0)  # self.U_0_sol
     U = solrk3  # Solution without ghost cells
     print(f'Finished simulation, plotting results...')
+    # Save results:
+    logstr = f'./data/N_{N}_dt_{solver.dt}_{time.time()}.json'
+    with open(logstr, 'w') as fp:
+        data = {'U': U.tolist(), # nested lists with same data, indices,
+                'solver_x': solver.x.tolist(),
+                'solver_t': solver.t.tolist(),
+                'gc': gc,
+                # less important:
+                'N': N,
+                'dt': solver.dt,
+                'rho_0': rho_0,
+                'p_cj': p_cj,
+                'e_0_guess': e_0_guess
+                }
+        #json.dump(data, fp, sort_keys=True, indent=4)
+        json.dump(data, codecs.open(logstr, 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True, indent=4) #
+        print(f'Saved as:')
+        print(f'{logstr}')
     # All rows, but exclude column of ghost cells:
     if 1:
         U = U[:, :,gc:-(gc)]

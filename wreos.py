@@ -331,8 +331,9 @@ if __name__ == '__main__':
     print(f'gamma_r(phi_0*v_0) = {gamma_r(phi_0*v_0)}')
     print(f'v_0= {v_0}')
     print(f'phi_0*v_0 =  {phi_0*v_0}')
-
-
+    print(f'-')
+    print(f'User note: the value below should be used as the e_0_guess in params.py')
+    print(f'-')
     print(f'-v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(p_0/phi_0 -p_s_r(phi_0*v_0))'
           f'= {-v_0 * INT[0] - ((phi_0*v_0)/gamma_r(phi_0*v_0))*(p_0/phi_0 -p_s_r(phi_0*v_0))}')
 
